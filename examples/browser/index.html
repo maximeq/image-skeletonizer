@@ -1,0 +1,46 @@
+<!-- Learn about this code on MDN: https://developer.mozilla.org/fr/docs/Tutoriel_canvas/Pixel_manipulation_with_canvas -->
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title> Projet Image </title>
+	<link rel="stylesheet" href="style.css">
+	<script src="../../dist/browser/skeletonizer.js"></script>
+</head>
+
+<body>
+
+<canvas id="canvas" width="640" height="480"></canvas>
+<canvas id="canvas2" width="640" height="480"></canvas>
+<canvas id="canvas3" width="640" height="480"></canvas>
+
+<script>
+    var img = new Image();
+    img.src = './img/img01.png';
+    img.crossOrigin = "Anonymous";
+    img.onload = function() {
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        img.style.display = 'none';
+        var img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        var skel_infos = ImageSkeletonizer.skeletonize(img_data);
+
+        var canvas2 = document.getElementById('canvas2');
+        var ctx2 = canvas2.getContext('2d');
+        var greyImage = skel_infos.distImg.toGreyScale(ctx2, skel_infos.skelImg);
+        ctx2.putImageData(greyImage, 0,0);
+
+        var canvas3 = document.getElementById('canvas3');
+        var ctx3 = canvas3.getContext('2d');
+        var image_and_skel = ImageSkeletonizer.displaySkeleton(skel_infos.skelImg, ctx3);
+        ctx3.putImageData(image_and_skel, 0,0);
+    };
+</script>
+
+</body>

@@ -1,0 +1,31 @@
+{
+  "name": "image-skeletonizer",
+  "version": "1.0.0",
+  "description": "Library computing a skeleton from a bicolor image.",
+  "main": "src/exports.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node build.js",
+    "lint": "eslint --env node --env browser --env es6 **.js",
+    "make-doc": "node make-doc.js"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "rollup": "^0.67.1",
+    "eslint": "^4.11.0",
+    "fs-extra": "^7.0.1",
+    "jsdoc-api": "^4.0.3",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-node-resolve": "^3.4.0",
+    "rollup-plugin-terser": "^3.0.0"
+  },
+  "files": [
+    "src/*",
+    "dist/*"
+  ],
+  "browser": "./dist/browser/skeletonizer.js",
+  "author": "Maxime Quiblier <maximequiblier@gmail.com>",
+  "license": "MIT",
+  "hash": "cbb66061ffd05bc5f6673756895b3f6f03e7202a"
+}
