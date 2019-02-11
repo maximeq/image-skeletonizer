@@ -1,11 +1,7 @@
 "use strict";
 
 const SkeletonNode = require("./SkeletonNode");
-
-var Point2D = function(x, y){
-  this.x = x;
-  this.y = y;
-};
+const Point2D = require("./Point2D");
 
 var Skeletonizer = function(skel_img, dist_img){
     this.skelImg = skel_img;

@@ -91,45 +91,36 @@ IntDistanceImage.prototype._buildDistanceImage = function(c1, c2, source, uncolo
     }
 };
 
-IntDistanceImage.prototype.toGreyScale = function (canvas_ctx, skeleton) {
-    var source = this;
+/**
+ *  @return {ImageData} A grey scale ImageData to visualize the distances.
+ */
+IntDistanceImage.prototype.getImageData = function (skeleton) {
 
-    let grey_data = new Uint8ClampedArray(source.width*source.height*4);
+    var res = new ImageData(this.width,this.height)
 
     let maxDist = 0;
-    for (let x = 0; x < source.width*source.height; x++) {
-        maxDist = (source.data[x] > maxDist) ? source.data[x] : maxDist;
+    for (let x = 0; x < this.width*this.height; x++) {
+        maxDist = (this.data[x] > maxDist) ? this.data[x] : maxDist;
     }
 
-    for (let y = 0, i=0, rgbValue = 0; y < source.height; y++) {
-        for (let x = 0; x < source.width; x++) {
-            let index = (y * source.width + x);
-
-            if (skeleton.data[index] == 1){
-                grey_data[i] = 255;
-                grey_data[i+1] = 0;
-                grey_data[i+2] = 0;
-                grey_data[i+3] = 255;
+    for (let y = 0, i=0, rgbValue = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+            let index = (y * this.width + x);
+            if (this.data[index] > 3) {
+                rgbValue = 255*this.data[index]/maxDist;
+                res.data[i] = rgbValue;
+                res.data[i+1] = rgbValue;
+                res.data[i+2] = rgbValue;
+                res.data[i+3] = 255;
             } else {
-                if (source.data[index] > 3) {
-                    rgbValue = 255*source.data[index]/maxDist;
-                    grey_data[i] = rgbValue;
-                    grey_data[i+1] = rgbValue;
-                    grey_data[i+2] = rgbValue;
-                    grey_data[i+3] = 255;
-                } else {
-                    grey_data[i] = 255;
-                    grey_data[i+1] = 255;
-                    grey_data[i+2] = 255;
-                    grey_data[i+3] = 255;
-                }
+                res.data[i] = 255;
+                res.data[i+1] = 255;
+                res.data[i+2] = 255;
+                res.data[i+3] = 255;
             }
-          i+=4;
+            i+=4;
         }
     }
-
-    let res = canvas_ctx.createImageData(source.width, source.height);
-    res.data.set(grey_data);
 
     return res;
 };
