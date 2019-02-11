@@ -22,7 +22,11 @@ ImageSkeletonizer.skeletonize = function(img_data){
     };
 };
 
-ImageSkeletonizer.displaySkeleton = function (source, canvasCtx) {
+/**
+ *  @param {SkeletonImage} source The skeleton image to be drawn
+ *  @return {ImageData} An ImageData : background in white, skeleton pixels in red.
+ */
+ImageSkeletonizer.displaySkeleton = function (source) {
   const grey_data = new Uint8ClampedArray(source.width*source.height*4);
   let maxDist = 0;
   for (let x = 0; x < source.width*source.height; x++) {
@@ -45,8 +49,7 @@ ImageSkeletonizer.displaySkeleton = function (source, canvasCtx) {
       i+=4;
     }
   }
-  const res = canvasCtx.createImageData(source.width, source.height);
-  res.data.set(grey_data);
+  const res = new ImageData(grey_data, source.width, source.height);
   return res;
 };
 

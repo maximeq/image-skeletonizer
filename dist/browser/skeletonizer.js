@@ -226,6 +226,42 @@
 
   SkeletonImage.prototype.constructor = SkeletonImage;
 
+  /**
+   *
+   *  @param {Array.<number>} The background color , default to white if undefined or null.
+   *  @param {Array.<number>} The skeleton color , default to red if undefined or null.
+   *  @return {ImageData} An ImageData on which the skeleton is drawn according to required colors.
+   */
+  SkeletonImage.prototype.getImageData = function(bgColor, skelColor){
+      var res = new ImageData(this.width, this.height);
+
+      var bg_c = bgColor ? bgColor : [255,255,255,255];
+      var skel_c = skelColor ? skelColor : [255,0,0,255];
+
+      let maxDist = 0;
+      for (let x = 0; x < this.width*this.height; x++) {
+          maxDist = (this.data[x] > maxDist) ? this.data[x] : maxDist;
+      }
+      for (let y = 0, i=0; y < this.height; y++) {
+          for (let x = 0; x < this.width; x++) {
+              let index = (y * this.width + x);
+              if (this.data[index] === 1) {
+                  res.data[i]   = skel_c[0];
+                  res.data[i+1] = skel_c[1];
+                  res.data[i+2] = skel_c[2];
+                  res.data[i+3] = skel_c[3];
+              } else {
+                  res.data[i]   = bg_c[0];
+                  res.data[i+1] = bg_c[1];
+                  res.data[i+2] = bg_c[2];
+                  res.data[i+3] = bg_c[3];
+              }
+              i+=4;
+          }
+      }
+      return res;
+  };
+
   // set all bit of border pixels to 0
   SkeletonImage.prototype.CleanBorderPixels = function() {
       for (let i = 0; i < this.width; i++){
@@ -712,7 +748,11 @@
       };
   };
 
-  ImageSkeletonizer.displaySkeleton = function (source, canvasCtx) {
+  /**
+   *  @param {SkeletonImage} source The skeleton image to be drawn
+   *  @return {ImageData} An ImageData : background in white, skeleton pixels in red.
+   */
+  ImageSkeletonizer.displaySkeleton = function (source) {
     const grey_data = new Uint8ClampedArray(source.width*source.height*4);
     let maxDist = 0;
     for (let x = 0; x < source.width*source.height; x++) {
@@ -735,8 +775,7 @@
         i+=4;
       }
     }
-    const res = canvasCtx.createImageData(source.width, source.height);
-    res.data.set(grey_data);
+    const res = new ImageData(grey_data, source.width, source.height);
     return res;
   };
 

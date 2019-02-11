@@ -24,6 +24,8 @@
     img.crossOrigin = "Anonymous";
     img.onload = function() {
         var canvas = document.getElementById('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
         var ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
         img.style.display = 'none';
@@ -32,14 +34,17 @@
         var skel_infos = ImageSkeletonizer.skeletonize(img_data);
 
         var canvas2 = document.getElementById('canvas2');
+        canvas2.width = img.width;
+        canvas2.height = img.height;
         var ctx2 = canvas2.getContext('2d');
         var greyImage = skel_infos.distImg.toGreyScale(ctx2, skel_infos.skelImg);
         ctx2.putImageData(greyImage, 0,0);
 
         var canvas3 = document.getElementById('canvas3');
+        canvas3.width = img.width;
+        canvas3.height = img.height;
         var ctx3 = canvas3.getContext('2d');
-        var image_and_skel = ImageSkeletonizer.displaySkeleton(skel_infos.skelImg, ctx3);
-        ctx3.putImageData(image_and_skel, 0,0);
+        ctx3.putImageData(skel_infos.skelImg.getImageData(),0,0);
     };
 </script>
 

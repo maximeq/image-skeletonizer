@@ -3,6 +3,7 @@ var rollup = require('rollup');
 var commonjs = require('rollup-plugin-commonjs');    // require
 var resolve = require('rollup-plugin-node-resolve'); // require from node_modules
 var terser = require('rollup-plugin-terser').terser; // minify
+var prettier = require('rollup-plugin-prettier');
 
 // clean previous build
 fs.removeSync('/dist/skeletonizer.js')
@@ -45,7 +46,17 @@ build({
 
 build({
     input: 'src/exports.js',
-    plugins:  [ commonjs(), resolve(), terser() ]
+    plugins:  [
+        commonjs(),
+        resolve(),
+        terser(),
+        prettier({
+          parser: 'babel',
+          tabWidth: 0,
+          singleQuote: false,
+          bracketSpacing:false
+        })
+    ]
 }, {
     format: 'umd',
     name: 'ImageSkeletonizer',
