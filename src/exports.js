@@ -4,8 +4,14 @@ const IntDistanceImage = require("./Image/IntDistanceImage.js");
 
 const SkeletonImage = require("./Skeletonizer/SkeletonImage.js");
 const Skeletonizer = require("./Skeletonizer/Skeletonizer.js");
+const QuiblierSkeletonizer = require("./Skeletonizer/QuiblierSkeletonizer.js");
 
 var ImageSkeletonizer = {};
+
+ImageSkeletonizer.BinaryImage = BinaryImage;
+ImageSkeletonizer.IntDistanceImage = IntDistanceImage;
+ImageSkeletonizer.SkeletonImage = SkeletonImage;
+ImageSkeletonizer.Skeletonizer = Skeletonizer;
 
 ImageSkeletonizer.skeletonize = function(img_data){
 
@@ -22,35 +28,17 @@ ImageSkeletonizer.skeletonize = function(img_data){
     };
 };
 
-/**
- *  @param {SkeletonImage} source The skeleton image to be drawn
- *  @return {ImageData} An ImageData : background in white, skeleton pixels in red.
- */
-ImageSkeletonizer.displaySkeleton = function (source) {
-  const grey_data = new Uint8ClampedArray(source.width*source.height*4);
-  let maxDist = 0;
-  for (let x = 0; x < source.width*source.height; x++) {
-    maxDist = (source.data[x] > maxDist) ? source.data[x] : maxDist;
-  }
-  for (let y = 0, i=0, rgbValue = 0; y < source.height; y++) {
-    for (let x = 0; x < source.width; x++) {
-      let index = (y * source.width + x);
-      if (source.data[index] === 1) {
-        grey_data[i] = 255;
-        grey_data[i+1] = 0;
-        grey_data[i+2] = 0;
-        grey_data[i+3] = 255;
-      } else {
-          grey_data[i] = 255;
-          grey_data[i+1] = 255;
-          grey_data[i+2] = 255;
-          grey_data[i+3] = 255;
-      }
-      i+=4;
-    }
-  }
-  const res = new ImageData(grey_data, source.width, source.height);
-  return res;
+ImageSkeletonizer.skeletonizeQ = function(img_data){
+
+    var binary_img  = new BinaryImage(img_data);
+    var dist_img    = new IntDistanceImage(3,4, binary_img, 0);
+    var skeletonizer = new QuiblierSkeletonizer(dist_img);
+
+    return {
+        skelImgData  : skeletonizer.getHierarchyInImageData(skeletonizer.buildHierarchy()),
+        binaryImg : binary_img,
+        distImg   : dist_img
+    };
 };
 
 module.exports = ImageSkeletonizer;
