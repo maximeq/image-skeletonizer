@@ -3,7 +3,7 @@
 var SkeletonNode = function(position, weight, neighbors){
   this.position = position;
   this.weight = weight;
-  this.neighbors = neighbors;
+  this.neighbors = neighbors || new Map();
 };
 
 SkeletonNode.prototype.constructor = SkeletonNode;

@@ -39,6 +39,16 @@ IntDistanceImage.prototype.getIndex = function(x,y){
 IntDistanceImage.prototype.getValue = function(x,y){
   return this.data[this.getIndex(x,y)];
 };
+IntDistanceImage.prototype.getIndexValue = function(idx){
+  return this.data[idx];
+};
+IntDistanceImage.prototype.getXFromIndex = function(idx){
+    return idx % this.width;
+};
+IntDistanceImage.prototype.getYFromIndex = function(idx){
+  return Math.round(idx / this.width);
+};
+
 
 IntDistanceImage.prototype._buildDistanceImage = function(c1, c2, source, uncolored){
 

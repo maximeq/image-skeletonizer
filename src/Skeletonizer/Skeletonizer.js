@@ -14,29 +14,33 @@ Skeletonizer.prototype.buildHierarchy = function(){
 
     const size = this.skelImg.width*this.skelImg.height;
 
-    let tab_node = new Array(size);
-    let first_node;
-    let k = this._findFirstPixelWithNeighbors(this.skelImg, this.distImg, tab_node);
-    if (k < size){
-        const x = k % this.skelImg.width;
-        const y = Math.round(k / this.skelImg.width);
-        first_node = new SkeletonNode(new Point2D(x+0.5,y+0.5),this.distImg.data[k], new Map() );
-        tab_node[k] = first_node;
-        this._recHierarchy(first_node, k, this.skelImg, this.distImg, tab_node);
+    let nodes = {};
+    let roots = [];
+    let k = this._findNextPixelWithNeighbors(this.skelImg, this.distImg, 0);
+    while(k<size){
+        if(nodes[k] === undefined){
+            const x = k % this.skelImg.width;
+            const y = Math.round(k / this.skelImg.width);
+            nodes[k] = new SkeletonNode(new Point2D(x+0.5,y+0.5),this.distImg.data[k]/this.distImg.getCoeff());
+            roots.push(nodes[k]);
+            this._recHierarchy(nodes[k], k, this.skelImg, this.distImg, nodes);
+        }
+        k = this._findNextPixelWithNeighbors(this.skelImg, this.distImg, k+1);
     }
 
-    console.log(first_node);
-
-    return first_node;
+    return roots;
 }
 
-Skeletonizer.prototype._findFirstPixelWithNeighbors = function(skel_img, distance_image, tab_node){
+/**
+ *  Find the next pixel with neighbors after index start.
+ */
+Skeletonizer.prototype._findNextPixelWithNeighbors = function(skel_img, dist_img, start){ // RQ : pourquoi en paramètre les images? Sont elles pas passées au constructeur?
     const size = skel_img.width * skel_img.height;
-    let k;
-    for (k=0; k < size ; k++){
+    let k = start;
+    for (k = start; k < size ; k++){
         if (skel_img.data[k] & 1){
-            if (skel_img.getCurrentNeighborhood(skel_img.data,k) == 0){
-                skel_img.data[k] = 0;
+            if (skel_img.getCurrentNeighborhood(skel_img.data,k) == 0){ // RQ : la fonction getCurrentNeighborhood doit elle vraiment se prendre elle meme en argument? En plus en tableau de data...
+                skel_img.data[k] = 0; // RQ : on change les valeurs de skel_img ?
             } else {
                 break;
             }
@@ -45,94 +49,93 @@ Skeletonizer.prototype._findFirstPixelWithNeighbors = function(skel_img, distanc
     return k;
 }
 
-Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, width, distance_image, tab_node ){
+Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, width, dist_img, nodes ){ // RQ mais corrigé : dist_img doit pas être le tableau de data
     const x = k % width;
     const y = Math.round(k / width);
     let newElement = 0;
 
     if (neighbors & 1){
-        if (!tab_node[k-width-1]){
-            const node = new SkeletonNode(new Point2D(x - 1 + 0.5, (y-1) + 0.5), distance_image[k-width-1], new Map());
-            tab_node[k-width-1] = node;
+        if (nodes[k-width-1] === undefined){
+            const node = new SkeletonNode(new Point2D(x - 1 + 0.5, (y-1) + 0.5), dist_img.data[k-width-1]);
+            nodes[k-width-1] = node;
             newElement ++;
         }
-        node.neighbors.set(k-width-1, tab_node[k-width-1]);
-
+        node.neighbors.set(k-width-1, nodes[k-width-1]);
     }
 
     if (neighbors & 2){
-        if (!tab_node[k-width]){
-            const node = new SkeletonNode(new Point2D(x+ 0.5, (y-1) + 0.5), distance_image[k-width], new Map());
-            tab_node[k-width] = node;
+        if (nodes[k-width] === undefined){
+            const node = new SkeletonNode(new Point2D(x+ 0.5, (y-1) + 0.5), dist_img.data[k-width]);
+            nodes[k-width] = node;
             newElement ++;
         }
-        node.neighbors.set(k-width, tab_node[k-width]);
+        node.neighbors.set(k-width, nodes[k-width]);
 
     }
 
     if (neighbors & 4){
-        if (!tab_node[k-width+1]){
-            const node = new SkeletonNode(new Point2D(x + 1 + 0.5, (y-1) + 0.5), distance_image[k-width + 1], new Map());
-            tab_node[k-width+1] = node;
+        if (nodes[k-width+1] === undefined){
+            const node = new SkeletonNode(new Point2D(x + 1 + 0.5, (y-1) + 0.5), dist_img.data[k-width + 1]);
+            nodes[k-width+1] = node;
             newElement ++;
         }
-        node.neighbors.set(k-width+1, tab_node[k-width+1]);
+        node.neighbors.set(k-width+1, nodes[k-width+1]);
     }
 
     if (neighbors & 8){
-        if (!tab_node[k+1]){
-            const node = new SkeletonNode(new Point2D(x+1 + 0.5,y + 0.5), distance_image[k+1], new Map());
-            tab_node[k+1] = node;
+        if (nodes[k+1] === undefined){
+            const node = new SkeletonNode(new Point2D(x+1 + 0.5,y + 0.5), dist_img.data[k+1]);
+            nodes[k+1] = node;
             newElement ++;
         }
-        node.neighbors.set(k+1, tab_node[k+1]);
+        node.neighbors.set(k+1, nodes[k+1]);
     }
 
     if (neighbors & 16){
-        if (!tab_node[k+width+1]){
-            const node = new SkeletonNode(new Point2D(x + 1 + 0.5, y + 1 + 0.5), distance_image[k+width + 1], new Map());
-            tab_node[k+width+1] = node;
+        if (nodes[k+width+1] === undefined){
+            const node = new SkeletonNode(new Point2D(x + 1 + 0.5, y + 1 + 0.5), dist_img.data[k+width + 1]);
+            nodes[k+width+1] = node;
             newElement ++;
         }
-        node.neighbors.set(k+width+1, tab_node[k+width+1]);
+        node.neighbors.set(k+width+1, nodes[k+width+1]);
     }
 
     if (neighbors & 32){
-        if (!tab_node[k+width]){
-            const node = new SkeletonNode(new Point2D(x+ 0.5, (y+1) + 0.5), distance_image[k+width], new Map());
-            tab_node[k+width] = node;
+        if (nodes[k+width] === undefined){
+            const node = new SkeletonNode(new Point2D(x+ 0.5, (y+1) + 0.5), dist_img.data[k+width]);
+            nodes[k+width] = node;
             newElement ++;
         }
-        node.neighbors.set(k+width, tab_node[k+width]);
+        node.neighbors.set(k+width, nodes[k+width]);
     }
 
     if (neighbors & 64){
-        if (!tab_node[k+width-1]){
-            const node = new SkeletonNode(new Point2D(x - 1+ 0.5, (y+1) + 0.5), distance_image[k+width - 1], new Map());
-            tab_node[k+width-1] = node;
+        if (nodes[k+width-1] === undefined){
+            const node = new SkeletonNode(new Point2D(x - 1+ 0.5, (y+1) + 0.5), dist_img.data[k+width - 1]);
+            nodes[k+width-1] = node;
             newElement ++;
         }
-        node.neighbors.set(k+width-1, tab_node[k+width-1]);
+        node.neighbors.set(k+width-1, nodes[k+width-1]);
     }
 
     if (neighbors & 128){
-        if (!tab_node[k-1]){
-            const node = new SkeletonNode(new Point2D(x - 1+ 0.5, y + 0.5), distance_image[k-1], new Map());
-            tab_node[k-1] = node;
+        if (nodes[k-1] === undefined){
+            const node = new SkeletonNode(new Point2D(x - 1+ 0.5, y + 0.5), dist_img.data[k-1]);
+            nodes[k-1] = node;
             newElement ++;
         }
-        node.neighbors.set(k-1, tab_node[k-1]);
+        node.neighbors.set(k-1, nodes[k-1]);
     }
 
     return newElement;
 }
 
-Skeletonizer.prototype._recHierarchy = function(node, k, skel_img, distance_image, tab_node){
+Skeletonizer.prototype._recHierarchy = function(node, k, skel_img, dist_img, nodes){
     const neighbors = skel_img.getCurrentNeighborhood(skel_img.data, k);
-    const newElement = this._addNeighbors(node, neighbors, k, skel_img.width, distance_image.data, tab_node );
+    const newElement = this._addNeighbors(node, neighbors, k, skel_img.width, dist_img, nodes );
     if (newElement){
         for (let [cle, valeur] of node.getNeighbors()){
-            this._recHierarchy(valeur, cle, skel_img, distance_image, tab_node);
+            this._recHierarchy(valeur, cle, skel_img, dist_img, nodes);
         }
     }
 }

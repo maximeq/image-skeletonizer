@@ -87,6 +87,16 @@
   IntDistanceImage.prototype.getValue = function(x,y){
     return this.data[this.getIndex(x,y)];
   };
+  IntDistanceImage.prototype.getIndexValue = function(idx){
+    return this.data[idx];
+  };
+  IntDistanceImage.prototype.getXFromIndex = function(idx){
+      return idx % this.width;
+  };
+  IntDistanceImage.prototype.getYFromIndex = function(idx){
+    return Math.round(idx / this.width);
+  };
+
 
   IntDistanceImage.prototype._buildDistanceImage = function(c1, c2, source, uncolored){
 
@@ -548,7 +558,7 @@
   var SkeletonNode = function(position, weight, neighbors){
     this.position = position;
     this.weight = weight;
-    this.neighbors = neighbors;
+    this.neighbors = neighbors || new Map();
   };
 
   SkeletonNode.prototype.constructor = SkeletonNode;
@@ -599,29 +609,33 @@
 
       const size = this.skelImg.width*this.skelImg.height;
 
-      let tab_node = new Array(size);
-      let first_node;
-      let k = this._findFirstPixelWithNeighbors(this.skelImg, this.distImg, tab_node);
-      if (k < size){
-          const x = k % this.skelImg.width;
-          const y = Math.round(k / this.skelImg.width);
-          first_node = new SkeletonNode_1(new Point2D_1(x+0.5,y+0.5),this.distImg.data[k], new Map() );
-          tab_node[k] = first_node;
-          this._recHierarchy(first_node, k, this.skelImg, this.distImg, tab_node);
+      let nodes = {};
+      let roots = [];
+      let k = this._findNextPixelWithNeighbors(this.skelImg, this.distImg, 0);
+      while(k<size){
+          if(nodes[k] === undefined){
+              const x = k % this.skelImg.width;
+              const y = Math.round(k / this.skelImg.width);
+              nodes[k] = new SkeletonNode_1(new Point2D_1(x+0.5,y+0.5),this.distImg.data[k]/this.distImg.getCoeff());
+              roots.push(nodes[k]);
+              this._recHierarchy(nodes[k], k, this.skelImg, this.distImg, nodes);
+          }
+          k = this._findNextPixelWithNeighbors(this.skelImg, this.distImg, k+1);
       }
 
-      console.log(first_node);
-
-      return first_node;
+      return roots;
   };
 
-  Skeletonizer.prototype._findFirstPixelWithNeighbors = function(skel_img, distance_image, tab_node){
+  /**
+   *  Find the next pixel with neighbors after index start.
+   */
+  Skeletonizer.prototype._findNextPixelWithNeighbors = function(skel_img, dist_img, start){ // RQ : pourquoi en paramètre les images? Sont elles pas passées au constructeur?
       const size = skel_img.width * skel_img.height;
-      let k;
-      for (k=0; k < size ; k++){
+      let k = start;
+      for (k = start; k < size ; k++){
           if (skel_img.data[k] & 1){
-              if (skel_img.getCurrentNeighborhood(skel_img.data,k) == 0){
-                  skel_img.data[k] = 0;
+              if (skel_img.getCurrentNeighborhood(skel_img.data,k) == 0){ // RQ : la fonction getCurrentNeighborhood doit elle vraiment se prendre elle meme en argument? En plus en tableau de data...
+                  skel_img.data[k] = 0; // RQ : on change les valeurs de skel_img ?
               } else {
                   break;
               }
@@ -630,94 +644,93 @@
       return k;
   };
 
-  Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, width, distance_image, tab_node ){
+  Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, width, dist_img, nodes ){ // RQ mais corrigé : dist_img doit pas être le tableau de data
       const x = k % width;
       const y = Math.round(k / width);
       let newElement = 0;
 
       if (neighbors & 1){
-          if (!tab_node[k-width-1]){
-              const node = new SkeletonNode_1(new Point2D_1(x - 1 + 0.5, (y-1) + 0.5), distance_image[k-width-1], new Map());
-              tab_node[k-width-1] = node;
+          if (nodes[k-width-1] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x - 1 + 0.5, (y-1) + 0.5), dist_img.data[k-width-1]);
+              nodes[k-width-1] = node;
               newElement ++;
           }
-          node.neighbors.set(k-width-1, tab_node[k-width-1]);
-
+          node.neighbors.set(k-width-1, nodes[k-width-1]);
       }
 
       if (neighbors & 2){
-          if (!tab_node[k-width]){
-              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y-1) + 0.5), distance_image[k-width], new Map());
-              tab_node[k-width] = node;
+          if (nodes[k-width] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y-1) + 0.5), dist_img.data[k-width]);
+              nodes[k-width] = node;
               newElement ++;
           }
-          node.neighbors.set(k-width, tab_node[k-width]);
+          node.neighbors.set(k-width, nodes[k-width]);
 
       }
 
       if (neighbors & 4){
-          if (!tab_node[k-width+1]){
-              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, (y-1) + 0.5), distance_image[k-width + 1], new Map());
-              tab_node[k-width+1] = node;
+          if (nodes[k-width+1] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, (y-1) + 0.5), dist_img.data[k-width + 1]);
+              nodes[k-width+1] = node;
               newElement ++;
           }
-          node.neighbors.set(k-width+1, tab_node[k-width+1]);
+          node.neighbors.set(k-width+1, nodes[k-width+1]);
       }
 
       if (neighbors & 8){
-          if (!tab_node[k+1]){
-              const node = new SkeletonNode_1(new Point2D_1(x+1 + 0.5,y + 0.5), distance_image[k+1], new Map());
-              tab_node[k+1] = node;
+          if (nodes[k+1] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x+1 + 0.5,y + 0.5), dist_img.data[k+1]);
+              nodes[k+1] = node;
               newElement ++;
           }
-          node.neighbors.set(k+1, tab_node[k+1]);
+          node.neighbors.set(k+1, nodes[k+1]);
       }
 
       if (neighbors & 16){
-          if (!tab_node[k+width+1]){
-              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, y + 1 + 0.5), distance_image[k+width + 1], new Map());
-              tab_node[k+width+1] = node;
+          if (nodes[k+width+1] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, y + 1 + 0.5), dist_img.data[k+width + 1]);
+              nodes[k+width+1] = node;
               newElement ++;
           }
-          node.neighbors.set(k+width+1, tab_node[k+width+1]);
+          node.neighbors.set(k+width+1, nodes[k+width+1]);
       }
 
       if (neighbors & 32){
-          if (!tab_node[k+width]){
-              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y+1) + 0.5), distance_image[k+width], new Map());
-              tab_node[k+width] = node;
+          if (nodes[k+width] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y+1) + 0.5), dist_img.data[k+width]);
+              nodes[k+width] = node;
               newElement ++;
           }
-          node.neighbors.set(k+width, tab_node[k+width]);
+          node.neighbors.set(k+width, nodes[k+width]);
       }
 
       if (neighbors & 64){
-          if (!tab_node[k+width-1]){
-              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, (y+1) + 0.5), distance_image[k+width - 1], new Map());
-              tab_node[k+width-1] = node;
+          if (nodes[k+width-1] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, (y+1) + 0.5), dist_img.data[k+width - 1]);
+              nodes[k+width-1] = node;
               newElement ++;
           }
-          node.neighbors.set(k+width-1, tab_node[k+width-1]);
+          node.neighbors.set(k+width-1, nodes[k+width-1]);
       }
 
       if (neighbors & 128){
-          if (!tab_node[k-1]){
-              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, y + 0.5), distance_image[k-1], new Map());
-              tab_node[k-1] = node;
+          if (nodes[k-1] === undefined){
+              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, y + 0.5), dist_img.data[k-1]);
+              nodes[k-1] = node;
               newElement ++;
           }
-          node.neighbors.set(k-1, tab_node[k-1]);
+          node.neighbors.set(k-1, nodes[k-1]);
       }
 
       return newElement;
   };
 
-  Skeletonizer.prototype._recHierarchy = function(node, k, skel_img, distance_image, tab_node){
+  Skeletonizer.prototype._recHierarchy = function(node, k, skel_img, dist_img, nodes){
       const neighbors = skel_img.getCurrentNeighborhood(skel_img.data, k);
-      const newElement = this._addNeighbors(node, neighbors, k, skel_img.width, distance_image.data, tab_node );
+      const newElement = this._addNeighbors(node, neighbors, k, skel_img.width, dist_img, nodes );
       if (newElement){
           for (let [cle, valeur] of node.getNeighbors()){
-              this._recHierarchy(valeur, cle, skel_img, distance_image, tab_node);
+              this._recHierarchy(valeur, cle, skel_img, dist_img, nodes);
           }
       }
   };
@@ -736,31 +749,57 @@
       const height = this.distImg.height;
       const size = width*height;
 
+      // Accepted error in pixels
+      var threshold = 3;
+
+      var nodes_set = {};
+      var nodes = [];
+
       var covered = new Array(size);
       for(var i=0; i<covered.length;++i){
           covered[i] = false;
       }
 
-      var addCover = function(node){
-          var cx =node.position.x;
-          var cy = node.position.y;
-          var w = Math.ceil(node.weight);
-          for(var x=node.position.x-w; x<node.position.x+w; x++){
-              for(var y=node.position.y-w; y<node.position.y+w; y++){
-                  if((x-cx)*(x-cx)+(y-cy)*(y-cy) <= w*w){
-                      var idx = y*width+x;
-                      covered[idx] = true;
+      // Add the zone covered by node and update the candidate list
+      var self = this;
+      var addCover = function(nodeA, nodeB, candidates){
+
+          if(nodeB === null){ // only one disk to cover
+              var cx =nodeA.position.x;
+              var cy = nodeA.position.y;
+              var w = Math.ceil(nodeA.weight);
+              for(var x=nodeA.position.x-w; x<nodeA.position.x+w; x++){
+                  for(var y=nodeA.position.y-w; y<nodeA.position.y+w; y++){
+                      var dist_sq = (x-cx)*(x-cx)+(y-cy)*(y-cy);
+                      if(dist_sq <= w*w){
+                          var idx = y*width+x;
+                          covered[idx] = true;
+                          delete candidates[idx];
+                      }
+                  }
+              }
+              // fill in new candidates
+              var circumf = Math.PI*2*(nodeA.weight+1);
+              var l = Math.round(circumf);
+              for(var i=0; i<l; ++i){
+                  var angle = i*2*Math.PI/l;
+                  var x = Math.round(nodeA.position.x + Math.cos(angle)*(nodeA.weight+1));
+                  var y = Math.round(nodeA.position.y + Math.sin(angle)*(nodeA.weight+1));
+                  var idx = y*width+x;
+                  var v = self.distImg.getValue(x,y)/self.distImg.getCoeff();
+                  if(!covered[idx] && v > threshold){
+                      candidates[idx] = true;
                   }
               }
           }
       };
 
-      // find the point with highes distance
+      // find the point with highest distance
       var max = 0;
       var max_x = -1;
       var max_y = -1;
-      for(var x=0; x<this.distImg.width; ++x){
-          for(var y=0; y<this.distImg.height; ++y){
+      for(var x=0; x<width; ++x){
+          for(var y=0; y<height; ++y){
               var v = this.distImg.getValue(x,y);
               if(v > max){
                   max = v;
@@ -770,98 +809,36 @@
           }
       }
 
-      var first_node = new SkeletonNode_1(new Point2D_1(max_x,max_y),max/this.distImg.getCoeff(), new Map());
-      addCover(first_node);
+      var first_node = new SkeletonNode_1(new Point2D_1(max_x,max_y),max/this.distImg.getCoeff());
+      nodes_set[this.distImg.getIndex(max_x,max_y)] = first_node;
+      nodes.push(first_node);
+      var candidates = {};
+      addCover(first_node, null, candidates);
 
-      var self = this;
-      var exploreNode = function(node, dist_img){
-          var circumf = Math.PI*2*node.weight;
-          var l = Math.round(circumf);
-          var values = new Array(l);
-          var xs     = new Array(l);
-          var ys     = new Array(l);
-
-          // Build the countour points, 1 pixel outside the current node.
-          for(var i=0; i<l; ++i){
-              var angle = i*2*Math.PI/l;
-              var x = Math.round(node.position.x + Math.cos(angle)*(node.weight+1));
-              var y = Math.round(node.position.y + Math.sin(angle)*(node.weight+1));
-              values[i] = self.distImg.getValue(x,y)/self.distImg.getCoeff();
-              xs[i] = x;
-              ys[i] = y;
-          }
-
-          // find the maximum on boundaries, which is not yet covered.
-          var max_v = -1;
+      var ck = Object.keys(candidates);
+      while(ck.length !== 0){
           var max_i = -1;
-          for(var i=0; i<values.length; ++i){
-              var idx = ys[i]*width+xs[i];
-              if(!covered[idx]){
-                  if(values[i]>max_v){
-                      max_v = values[i];
-                      max_i = i;
-                  }
+          var max_v = 0;
+          for(var i=0; i<ck.length; ++i){
+              var idx = parseInt(ck[i]);
+              if(covered[idx]){
+                  delete candidates[ck[i]];
+              }else if(this.distImg.getIndexValue(idx)>max_v){
+                  max_v = this.distImg.getIndexValue(idx);
+                  max_i = idx;
               }
           }
 
-          if(max_v > 2){
-              var new_node = new SkeletonNode_1(new Point2D_1(xs[max_i],ys[max_i]),max_v, new Map());
-              node.getNeighbors().set(xs[max_i]+";"+ys[max_i], new_node);
-              addCover(new_node);
-              return new_node;
-          }else{
-              return null;
-          }
-      };
+          var new_node = new SkeletonNode_1(new Point2D_1(this.distImg.getXFromIndex(max_i),this.distImg.getYFromIndex(max_i)),max_v/this.distImg.getCoeff());
+          nodes_set[max_i] = new_node;
+          nodes.push(new_node);
+          delete candidates[max_i];
+          addCover(new_node, null, candidates);
 
-      var exp_n = first_node;
-      while(exp_n !== null){
-          exp_n = exploreNode(exp_n);
+          ck = Object.keys(candidates);
       }
 
-      return first_node;
-  };
-
-  /**
-   *  @param {SkeletonNode} h A hierarchy built with buildHierarchy.
-   */
-  QuiblierSkeletonizer.prototype.getHierarchyInImageData = function(h){
-      var res = this.distImg.getImageData();
-
-      var nodes = [];
-
-      var recFindAllNodes = function(node){
-          nodes.push(node);
-          node.getNeighbors().forEach(function(value, key, map) {
-              recFindAllNodes(value);
-          });
-      };
-      recFindAllNodes(h);
-
-      for(var x=0; x<res.width; ++x){
-          for(var y=0; y<res.height; ++y){
-              var avg_n = 0;
-              for(var i=0; i<nodes.length; ++i){
-                  var cx = nodes[i].position.x+0.5;
-                  var cy = nodes[i].position.y+0.5;
-                  if((x+0.5-cx)*(x+0.5-cx)+(y+0.5-cy)*(y+0.5-cy) <= nodes[i].weight*nodes[i].weight){
-                      avg_n++;
-                  }
-              }
-              var idx = 4*(y*res.width+x);
-              res.data[idx+1] = (res.data[idx]+avg_n*255)/(avg_n+1);
-          }
-      }
-
-      for(var i=0; i<nodes.length; ++i){
-          var n = nodes[i];
-          var idx = 4*(n.position.y*res.width+n.position.x);
-          res.data[idx] = 255;
-          res.data[idx+1] = 0;
-          res.data[idx+2] = 0;
-      }
-
-      return res;
+      return nodes;
   };
 
   var QuiblierSkeletonizer_1 = QuiblierSkeletonizer;
@@ -895,10 +872,60 @@
       var skeletonizer = new QuiblierSkeletonizer_1(dist_img);
 
       return {
-          skelImgData  : skeletonizer.getHierarchyInImageData(skeletonizer.buildHierarchy()),
+          skeleton  : skeletonizer.buildHierarchy(),
           binaryImg : binary_img,
           distImg   : dist_img
       };
+  };
+
+  /**
+   *  @param {Array.<SkeletonNode>} h A hierarchy built with buildHierarchy of a Skeletonizer.
+   *  @param {ImageData} dist_img The image data in which the hiearchy must be drawn (don't forget to clone it if necessary, it will be modified)
+   */
+  ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data){
+      var res = img_data;
+
+      var nodes_set = {};
+      var nodes = [];
+
+      var recFindAllNodes = function(node){
+          var k = node.position.x + ";" + node.position.y;
+          if(nodes_set[k] === undefined){
+              nodes_set[k] = node;
+              nodes.push(node);
+              node.getNeighbors().forEach(function(value, key, map) {
+                  recFindAllNodes(value);
+              });
+          }
+      };
+      for(var i=0; i<h.length; ++i){
+          recFindAllNodes(h[i]);
+      }
+
+      for(var x=0; x<res.width; ++x){
+          for(var y=0; y<res.height; ++y){
+              var avg_n = 0;
+              for(var i=0; i<nodes.length; ++i){
+                  var cx = nodes[i].position.x+0.5;
+                  var cy = nodes[i].position.y+0.5;
+                  if((x+0.5-cx)*(x+0.5-cx)+(y+0.5-cy)*(y+0.5-cy) <= nodes[i].weight*nodes[i].weight){
+                      avg_n++;
+                  }
+              }
+              var idx = 4*(y*res.width+x);
+              res.data[idx+1] = (res.data[idx]+avg_n*255)/(avg_n+1);
+          }
+      }
+
+      for(var i=0; i<nodes.length; ++i){
+          var n = nodes[i];
+          var idx = 4*(n.position.y*res.width+n.position.x);
+          res.data[idx] = 255;
+          res.data[idx+1] = 0;
+          res.data[idx+2] = 0;
+      }
+
+      return res;
   };
 
   var exports$1 = ImageSkeletonizer;
