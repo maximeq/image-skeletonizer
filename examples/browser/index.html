@@ -20,7 +20,7 @@
 
 <script>
     var img = new Image();
-    img.src = './img/foot3.png';
+    img.src = './img/foot.png';
     img.crossOrigin = "Anonymous";
     img.onload = function() {
         var canvas = document.getElementById('canvas');
@@ -49,21 +49,21 @@
         }
         ctx2.putImageData(greyImageData, 0,0);
 
+        /*
         var canvas3 = document.getElementById('canvas3');
         canvas3.width = img.width;
         canvas3.height = img.height;
         var ctx3 = canvas3.getContext('2d');
         ctx3.putImageData(skelImageData,0,0);
+        */
 
-        /*
         var skel_infos_q = ImageSkeletonizer.skeletonizeQ(img_data);
 
         var canvas3 = document.getElementById('canvas3');
         canvas3.width = img.width;
         canvas3.height = img.height;
         var ctx3 = canvas3.getContext('2d');
-        ctx3.putImageData(skel_infos_q.skelImgData, 0,0);
-        */
+        ctx3.putImageData(ImageSkeletonizer.drawHierarchyInImageData(skel_infos_q.skeleton, skel_infos_q.distImg.getImageData()), 0,0);
 
     };
 </script>
