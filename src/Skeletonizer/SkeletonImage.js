@@ -104,7 +104,7 @@ SkeletonImage.prototype.thin = function()
       if ((this.data[index] & 1) == 0)
       continue;
 
-      const voisins = this.getCurrentNeighborhood(this.data,index );
+      const voisins = this.getCurrentNeighborhood(index);
 
       if (((voisins & 7) == 0 && (voisins & 112) == 112) ||
       ((voisins & 14) == 0 && (voisins & 160) == 160) ||
@@ -313,8 +313,9 @@ SkeletonImage.prototype.skeletonizeEckhardtMaderlechner93 = function(maxIter,dis
 * @param ptrPix a pointer towards the neighborhood wanted pixel
 * @return The encoded neighborhood
 */
-SkeletonImage.prototype.getCurrentNeighborhood = function(tab, indexPixel)
+SkeletonImage.prototype.getCurrentNeighborhood = function(indexPixel)
 {
+    var tab = this.data;
     // encode the neighborhood of the pixel
     return (
         ((tab[indexPixel - 1] & 1)                  << 7) |

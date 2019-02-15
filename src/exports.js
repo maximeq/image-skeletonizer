@@ -133,11 +133,15 @@ ImageSkeletonizer.drawHierarchyInCanvas = function(h,cvs){
     for(var i=0; i<nodes.length; ++i){
         var node = nodes[i];
         node.getNeighbors().forEach(function(value, key, map) {
-            ctx.strokeStyle = "#0000FF";
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "#ff0000";
             ctx.beginPath();
             ctx.moveTo(node.position.x, node.position.y);
             ctx.lineTo(value.position.x, value.position.y);
             ctx.stroke();
+            ctx.fillStyle = "#0000ff";
+            ctx.fillRect(node.position.x, node.position.y,1,1);
+            ctx.fillRect(value.position.x, value.position.y,1,1);
         });
     }
 };

@@ -11,7 +11,6 @@ Point2D.prototype.distanceToOrigin = function(p){
     return Math.sqrt(x*x+y*y);
 }
 
-
 Point2D.prototype.distanceTo = function(p){
     var x = this.x-p.x;
     var y = this.y-p.y;

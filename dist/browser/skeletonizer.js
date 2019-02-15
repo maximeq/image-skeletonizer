@@ -289,7 +289,7 @@
         if ((this.data[index] & 1) == 0)
         continue;
 
-        const voisins = this.getCurrentNeighborhood(this.data,index );
+        const voisins = this.getCurrentNeighborhood(index);
 
         if (((voisins & 7) == 0 && (voisins & 112) == 112) ||
         ((voisins & 14) == 0 && (voisins & 160) == 160) ||
@@ -483,8 +483,9 @@
   * @param ptrPix a pointer towards the neighborhood wanted pixel
   * @return The encoded neighborhood
   */
-  SkeletonImage.prototype.getCurrentNeighborhood = function(tab, indexPixel)
+  SkeletonImage.prototype.getCurrentNeighborhood = function(indexPixel)
   {
+      var tab = this.data;
       // encode the neighborhood of the pixel
       return (
           ((tab[indexPixel - 1] & 1)                  << 7) |
@@ -602,7 +603,6 @@
       return Math.sqrt(x*x+y*y);
   };
 
-
   Point2D.prototype.distanceTo = function(p){
       var x = this.x-p.x;
       var y = this.y-p.y;
@@ -617,6 +617,25 @@
   };
 
   var Point2D_1 = Point2D;
+
+  var Vector2D = function(x, y){
+    this.x = x || 0;
+    this.y = y || 0;
+  };
+
+  Vector2D.prototype.length = function(p){
+      var x = this.x;
+      var y = this.y;
+      return Math.sqrt(x*x+y*y);
+  };
+
+  Vector2D.prototype.subPoints = function(p1,p2){
+      var x = p1.x-p2.x;
+      var y = p1.yp2.y;
+      return this;
+  };
+
+  var Vector2D_1 = Vector2D;
 
   var Skeletonizer = function(skel_img, dist_img){
       this.skelImg = skel_img;
@@ -638,24 +657,33 @@
               const y = Math.round(k / this.skelImg.width);
               nodes[k] = new SkeletonNode_1(new Point2D_1(x+0.5,y+0.5),this.distImg.data[k]/this.distImg.getCoeff());
               roots.push(nodes[k]);
-              this._recHierarchy(nodes[k], k, this.skelImg, this.distImg, nodes);
+              this._recHierarchy(nodes[k], k, nodes);
           }
-          k = this._findNextPixelWithNeighbors(this.skelImg, this.distImg, k+1);
+          k = this._findNextPixelWithNeighbors(k+1);
       }
 
       return roots;
   };
 
+  Skeletonizer.prototype._simplifyHierarchy = function(root, angle, done){
+      var p0 = root.position();
+      if(root.getNeighbors().size() === 1){
+          var it = root.getNeighbors().keys();
+          var p1 = it.next().value.position();
+          var dir = new Vector2D_1().subPoints(p1,p0);
+      }
+  };
+
   /**
    *  Find the next pixel with neighbors after index start.
    */
-  Skeletonizer.prototype._findNextPixelWithNeighbors = function(skel_img, dist_img, start){ // RQ : pourquoi en paramètre les images? Sont elles pas passées au constructeur?
-      const size = skel_img.width * skel_img.height;
+  Skeletonizer.prototype._findNextPixelWithNeighbors = function(start){
+      const size = this.skelImg.width * this.skelImg.height;
       let k = start;
       for (k = start; k < size ; k++){
-          if (skel_img.data[k] & 1){
-              if (skel_img.getCurrentNeighborhood(skel_img.data,k) == 0){ // RQ : la fonction getCurrentNeighborhood doit elle vraiment se prendre elle meme en argument? En plus en tableau de data...
-                  skel_img.data[k] = 0; // RQ : on change les valeurs de skel_img ?
+          if (this.skelImg.data[k] & 1){
+              if (this.skelImg.getCurrentNeighborhood(k) == 0){
+                  this.skelImg.data[k] = 0; // Single skeleton pixels are wiped out.
               } else {
                   break;
               }
@@ -664,14 +692,15 @@
       return k;
   };
 
-  Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, width, dist_img, nodes ){ // RQ mais corrigé : dist_img doit pas être le tableau de data
+  Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, nodes ){
+      const width = this.skelImg.width;
       const x = k % width;
       const y = Math.round(k / width);
       let newElement = 0;
 
       if (neighbors & 1){
           if (nodes[k-width-1] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x - 1 + 0.5, (y-1) + 0.5), dist_img.data[k-width-1]);
+              const node = new SkeletonNode_1(new Point2D_1(x - 1 + 0.5, (y-1) + 0.5), this.distImg.getIndexValue(k-width-1));
               nodes[k-width-1] = node;
               newElement ++;
           }
@@ -680,7 +709,7 @@
 
       if (neighbors & 2){
           if (nodes[k-width] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y-1) + 0.5), dist_img.data[k-width]);
+              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y-1) + 0.5), this.distImg.getIndexValue(k-width));
               nodes[k-width] = node;
               newElement ++;
           }
@@ -690,7 +719,7 @@
 
       if (neighbors & 4){
           if (nodes[k-width+1] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, (y-1) + 0.5), dist_img.data[k-width + 1]);
+              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, (y-1) + 0.5), this.distImg.getIndexValue(k-width + 1));
               nodes[k-width+1] = node;
               newElement ++;
           }
@@ -699,7 +728,7 @@
 
       if (neighbors & 8){
           if (nodes[k+1] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x+1 + 0.5,y + 0.5), dist_img.data[k+1]);
+              const node = new SkeletonNode_1(new Point2D_1(x+1 + 0.5,y + 0.5), this.distImg.getIndexValue(k+1));
               nodes[k+1] = node;
               newElement ++;
           }
@@ -708,7 +737,7 @@
 
       if (neighbors & 16){
           if (nodes[k+width+1] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, y + 1 + 0.5), dist_img.data[k+width + 1]);
+              const node = new SkeletonNode_1(new Point2D_1(x + 1 + 0.5, y + 1 + 0.5), this.distImg.getIndexValue(k+width + 1));
               nodes[k+width+1] = node;
               newElement ++;
           }
@@ -717,7 +746,7 @@
 
       if (neighbors & 32){
           if (nodes[k+width] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y+1) + 0.5), dist_img.data[k+width]);
+              const node = new SkeletonNode_1(new Point2D_1(x+ 0.5, (y+1) + 0.5), this.distImg.getIndexValue(k+width));
               nodes[k+width] = node;
               newElement ++;
           }
@@ -726,7 +755,7 @@
 
       if (neighbors & 64){
           if (nodes[k+width-1] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, (y+1) + 0.5), dist_img.data[k+width - 1]);
+              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, (y+1) + 0.5), this.distImg.getIndexValue(k+width - 1));
               nodes[k+width-1] = node;
               newElement ++;
           }
@@ -735,7 +764,7 @@
 
       if (neighbors & 128){
           if (nodes[k-1] === undefined){
-              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, y + 0.5), dist_img.data[k-1]);
+              const node = new SkeletonNode_1(new Point2D_1(x - 1+ 0.5, y + 0.5), this.distImg.getIndexValue(k-1));
               nodes[k-1] = node;
               newElement ++;
           }
@@ -745,12 +774,12 @@
       return newElement;
   };
 
-  Skeletonizer.prototype._recHierarchy = function(node, k, skel_img, dist_img, nodes){
-      const neighbors = skel_img.getCurrentNeighborhood(skel_img.data, k);
-      const newElement = this._addNeighbors(node, neighbors, k, skel_img.width, dist_img, nodes );
+  Skeletonizer.prototype._recHierarchy = function(node, k, nodes){
+      const neighbors = this.skelImg.getCurrentNeighborhood(k);
+      const newElement = this._addNeighbors(node, neighbors, k, nodes );
       if (newElement){
           for (let [cle, valeur] of node.getNeighbors()){
-              this._recHierarchy(valeur, cle, skel_img, dist_img, nodes);
+              this._recHierarchy(valeur, cle, nodes);
           }
       }
   };
@@ -1157,11 +1186,15 @@
       for(var i=0; i<nodes.length; ++i){
           var node = nodes[i];
           node.getNeighbors().forEach(function(value, key, map) {
-              ctx.strokeStyle = "#0000FF";
+              ctx.lineWidth = 1;
+              ctx.strokeStyle = "#ff0000";
               ctx.beginPath();
               ctx.moveTo(node.position.x, node.position.y);
               ctx.lineTo(value.position.x, value.position.y);
               ctx.stroke();
+              ctx.fillStyle = "#0000ff";
+              ctx.fillRect(node.position.x, node.position.y,1,1);
+              ctx.fillRect(value.position.x, value.position.y,1,1);
           });
       }
   };
