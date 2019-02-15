@@ -33,7 +33,6 @@
 
         var skel_infos = ImageSkeletonizer.skeletonize(img_data);
 
-        // Draw the skeleton pixels in red over the distance image
         var canvas2 = document.getElementById('canvas2');
         canvas2.width = img.width;
         canvas2.height = img.height;
@@ -50,12 +49,31 @@
         }
         ctx2.putImageData(greyImageData, 0,0);
 
-        // Draw skeleton only
+        /*
         var canvas3 = document.getElementById('canvas3');
         canvas3.width = img.width;
         canvas3.height = img.height;
         var ctx3 = canvas3.getContext('2d');
         ctx3.putImageData(skelImageData,0,0);
+        */
+
+        var skel_infos_q = ImageSkeletonizer.skeletonizeQ(img_data);
+
+        var canvas3 = document.getElementById('canvas3');
+        canvas3.width = img.width;
+        canvas3.height = img.height;
+        var ctx3 = canvas3.getContext('2d');
+        ctx3.putImageData(
+            ImageSkeletonizer.drawHierarchyInImageData(
+                skel_infos_q.skeleton,
+                ImageSkeletonizer.drawCoverInImageData(
+                    skel_infos_q.covered,
+                    skel_infos_q.distImg.getImageData()
+                ),
+            ),
+            0,0
+        );
+        ImageSkeletonizer.drawHierarchyInCanvas(skel_infos_q.skeleton,canvas3);
 
     };
 </script>

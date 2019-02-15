@@ -34,10 +34,13 @@ ImageSkeletonizer.skeletonizeQ = function(img_data){
     var dist_img    = new IntDistanceImage(3,4, binary_img, 0);
     var skeletonizer = new QuiblierSkeletonizer(dist_img);
 
+
+    var h = skeletonizer.buildHierarchy();
     return {
-        skeleton  : skeletonizer.buildHierarchy(),
+        skeleton  : h.hierarchy,
         binaryImg : binary_img,
-        distImg   : dist_img
+        distImg   : dist_img,
+        covered   : h.covered
     };
 };
 
@@ -76,7 +79,7 @@ ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data){
                 }
             }
             var idx = 4*(y*res.width+x);
-            res.data[idx+1] = (res.data[idx]+avg_n*255)/(avg_n+1);
+            res.data[idx+1] = (res.data[idx+1]+avg_n*255)/(avg_n+1);
         }
     }
 
@@ -89,6 +92,54 @@ ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data){
     }
 
     return res;
+};
+
+ImageSkeletonizer.drawCoverInImageData = function(covered,img_data){
+    var res = img_data;
+
+    for(var x=0; x<res.width; ++x){
+        for(var y=0; y<res.height; ++y){
+            var idx = y*res.width+x;
+            if(covered[idx]){
+                idx = 4*idx;
+                res.data[idx+1] = (res.data[idx+1]+255)/2;
+            }
+        }
+    }
+
+    return res;
+};
+
+ImageSkeletonizer.drawHierarchyInCanvas = function(h,cvs){
+    var ctx = cvs.getContext("2d");
+
+    var nodes_set = {};
+    var nodes = [];
+
+    var recFindAllNodes = function(node){
+        var k = node.position.x + ";" + node.position.y;
+        if(nodes_set[k] === undefined){
+            nodes_set[k] = node;
+            nodes.push(node);
+            node.getNeighbors().forEach(function(value, key, map) {
+                recFindAllNodes(value);
+            });
+        }
+    };
+    for(var i=0; i<h.length; ++i){
+        recFindAllNodes(h[i]);
+    }
+
+    for(var i=0; i<nodes.length; ++i){
+        var node = nodes[i];
+        node.getNeighbors().forEach(function(value, key, map) {
+            ctx.strokeStyle = "#0000FF";
+            ctx.beginPath();
+            ctx.moveTo(node.position.x, node.position.y);
+            ctx.lineTo(value.position.x, value.position.y);
+            ctx.stroke();
+        });
+    }
 };
 
 module.exports = ImageSkeletonizer;
