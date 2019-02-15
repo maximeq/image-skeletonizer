@@ -227,6 +227,10 @@
 
   SkeletonImage.prototype.constructor = SkeletonImage;
 
+  SkeletonImage.prototype.getIndex = function(x,y){
+    return y*this.width+x;
+  };
+
   /**
    *
    *  @param {Array.<number>} The background color , default to white if undefined or null.
@@ -556,15 +560,40 @@
 
   var SkeletonImage_1 = SkeletonImage;
 
-  var SkeletonNode = function(position, weight, neighbors){
+  /**
+   *  Main class for a skeleton node in an image.
+   *  Must be unique for each pixel.
+   *  @param {Point2D} position The position of the node. Can be anything in [x+1[ [y+1[
+   */
+  var SkeletonNode = function(position, weight){
     this.position = position;
     this.weight = weight;
-    this.neighbors = neighbors || new Map();
+    this.neighbors = new Map();
+  };
+
+  /**
+   *  Compute the key of a node in neighbors maps, given its x,y positions.
+   */
+  SkeletonNode.computeKey = function(x,y){
+      return Math.floor(x)+";"+Math.floor(y);
+  };
+  /**
+   *  Return x,y in an array of 2 elements
+   */
+  SkeletonNode.getXYFromKey = function(key){
+      var res = key.split(";");
+      res[0] = parseInt(res[0]);
+      res[1] = parseInt(res[1]);
+      return res;
   };
 
   SkeletonNode.prototype.constructor = SkeletonNode;
 
   // Getters
+  SkeletonNode.prototype.getKey = function(){
+      return this.computeKey(this.position.x,this.position.y);
+  };
+
   SkeletonNode.prototype.getPosition = function(){
     return this.position;
   };
@@ -589,6 +618,8 @@
   SkeletonNode.prototype.setNeighbors = function(neighbors){
     this.neighbors = neighbors;
   };
+
+
 
   var SkeletonNode_1 = SkeletonNode;
 
@@ -665,6 +696,10 @@
       return roots;
   };
 
+  /**
+   *  Simplify the hierarchy based on the given angle in radian.
+   *  Actually iterate through each branch and remove all pixels such that
+   */
   Skeletonizer.prototype._simplifyHierarchy = function(root, angle, done){
       var p0 = root.position();
       if(root.getNeighbors().size() === 1){
@@ -692,7 +727,61 @@
       return k;
   };
 
-  Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, nodes ){
+  // New : use x,y instead of 1 dimensionnal index
+
+  // Private function used in _addNeighbors
+  Skeletonizer.prototype._checkAndCreate = function(x,y, node, nodes){
+      var key = SkeletonNode_1.computeKey(x,y);
+      if (nodes[key] === undefined){
+          nodes[key] = new SkeletonNode_1(new Point2D_1(x+0.5, y+0.5), this.distImg.getValue(x,y));
+          newElement ++;
+      }
+      node.neighbors.set(key, nodes[key]);
+  };
+  Skeletonizer.prototype._addNeighbors = function(node, neighbors, nodes ){
+      const width = this.skelImg.width;
+      const x = Math.floor(node.position.x);
+      const y = Math.floor(node.position.y);
+      let newElement = 0;
+
+      if (neighbors & 1){
+          this._checkAndCreate(x-1,y-1,node,nodes);
+      }
+
+      if (neighbors & 2){
+          var key = SkeletonNode_1.computeKey(x,y-1);
+          this._checkAndCreate(x,y-1,node,nodes);
+      }
+
+      if (neighbors & 4){
+          this._checkAndCreate(x+1,y-1,node,nodes);
+      }
+
+      if (neighbors & 8){
+          this._checkAndCreate(x+1,y,node,nodes);
+      }
+
+      if (neighbors & 16){
+          this._checkAndCreate(x+1,y+1,node,nodes);
+      }
+
+      if (neighbors & 32){
+          this._checkAndCreate(x,y+1,node,nodes);
+      }
+
+      if (neighbors & 64){
+          this._checkAndCreate(x-1,y+1,node,nodes);
+      }
+
+      if (neighbors & 128){
+          this._checkAndCreate(x-1,y,node,nodes);
+      }
+
+      return newElement;
+  };
+
+
+  Skeletonizer.prototype._addNeighborsOLD = function(node, neighbors, k, nodes ){
       const width = this.skelImg.width;
       const x = k % width;
       const y = Math.round(k / width);
@@ -774,12 +863,17 @@
       return newElement;
   };
 
-  Skeletonizer.prototype._recHierarchy = function(node, k, nodes){
-      const neighbors = this.skelImg.getCurrentNeighborhood(k);
-      const newElement = this._addNeighbors(node, neighbors, k, nodes );
+  Skeletonizer.prototype._recHierarchy = function(node, nodes){
+      const neighbors = this.skelImg.getCurrentNeighborhood(
+          this.skelImg.getIndex(
+              Math.floor(node.position.x),
+              Math.floor(node.position.y),
+          )
+      );
+      const newElement = this._addNeighbors(node, neighbors, nodes );
       if (newElement){
           for (let [cle, valeur] of node.getNeighbors()){
-              this._recHierarchy(valeur, cle, nodes);
+              this._recHierarchy(valeur, nodes);
           }
       }
   };

@@ -42,6 +42,10 @@ var SkeletonImage = function(source, uncolored, max_iter, distance_image) {
 
 SkeletonImage.prototype.constructor = SkeletonImage;
 
+SkeletonImage.prototype.getIndex = function(x,y){
+  return y*this.width+x;
+};
+
 /**
  *
  *  @param {Array.<number>} The background color , default to white if undefined or null.

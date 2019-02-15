@@ -32,6 +32,10 @@ Skeletonizer.prototype.buildHierarchy = function(){
     return roots;
 }
 
+/**
+ *  Simplify the hierarchy based on the given angle in radian.
+ *  Actually iterate through each branch and remove all pixels such that
+ */
 Skeletonizer.prototype._simplifyHierarchy = function(root, angle, done){
     var p0 = root.position();
     if(root.getNeighbors().size() === 1){
@@ -59,7 +63,61 @@ Skeletonizer.prototype._findNextPixelWithNeighbors = function(start){
     return k;
 }
 
-Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, nodes ){
+// New : use x,y instead of 1 dimensionnal index
+
+// Private function used in _addNeighbors
+Skeletonizer.prototype._checkAndCreate = function(x,y, node, nodes){
+    var key = SkeletonNode.computeKey(x,y);
+    if (nodes[key] === undefined){
+        nodes[key] = new SkeletonNode(new Point2D(x+0.5, y+0.5), this.distImg.getValue(x,y));
+        newElement ++;
+    }
+    node.neighbors.set(key, nodes[key]);
+};
+Skeletonizer.prototype._addNeighbors = function(node, neighbors, nodes ){
+    const width = this.skelImg.width;
+    const x = Math.floor(node.position.x);
+    const y = Math.floor(node.position.y);
+    let newElement = 0;
+
+    if (neighbors & 1){
+        this._checkAndCreate(x-1,y-1,node,nodes);
+    }
+
+    if (neighbors & 2){
+        var key = SkeletonNode.computeKey(x,y-1);
+        this._checkAndCreate(x,y-1,node,nodes);
+    }
+
+    if (neighbors & 4){
+        this._checkAndCreate(x+1,y-1,node,nodes);
+    }
+
+    if (neighbors & 8){
+        this._checkAndCreate(x+1,y,node,nodes);
+    }
+
+    if (neighbors & 16){
+        this._checkAndCreate(x+1,y+1,node,nodes);
+    }
+
+    if (neighbors & 32){
+        this._checkAndCreate(x,y+1,node,nodes);
+    }
+
+    if (neighbors & 64){
+        this._checkAndCreate(x-1,y+1,node,nodes);
+    }
+
+    if (neighbors & 128){
+        this._checkAndCreate(x-1,y,node,nodes);
+    }
+
+    return newElement;
+}
+
+
+Skeletonizer.prototype._addNeighborsOLD = function(node, neighbors, k, nodes ){
     const width = this.skelImg.width;
     const x = k % width;
     const y = Math.round(k / width);
@@ -141,12 +199,17 @@ Skeletonizer.prototype._addNeighbors = function(node, neighbors, k, nodes ){
     return newElement;
 }
 
-Skeletonizer.prototype._recHierarchy = function(node, k, nodes){
-    const neighbors = this.skelImg.getCurrentNeighborhood(k);
-    const newElement = this._addNeighbors(node, neighbors, k, nodes );
+Skeletonizer.prototype._recHierarchy = function(node, nodes){
+    const neighbors = this.skelImg.getCurrentNeighborhood(
+        this.skelImg.getIndex(
+            Math.floor(node.position.x),
+            Math.floor(node.position.y),
+        )
+    );
+    const newElement = this._addNeighbors(node, neighbors, nodes );
     if (newElement){
         for (let [cle, valeur] of node.getNeighbors()){
-            this._recHierarchy(valeur, cle, nodes);
+            this._recHierarchy(valeur, nodes);
         }
     }
 }
