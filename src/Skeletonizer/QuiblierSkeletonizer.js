@@ -2,58 +2,12 @@
 
 const SkeletonNode = require("./SkeletonNode");
 const Point2D = require("./Point2D");
+const CapsuleDistance = require("./CapsuleDistance");
 
-var capsuleDistance = function(p1,p2,r1,r2,p){
-
-
-    var rdiff = r2 - r1;
-    var unit_dir = new Point2D(
-        p2.x-p1.x,
-        p2.y-p1.y
-    );
-    var length = unit_dir.distanceToOrigin();
-    unit_dir.x = unit_dir.x/length;
-    unit_dir.y = unit_dir.y/length;
-
-    var v = new Point2D(
-        p.x-p1.x,
-        p.y-p1.y
-    );
-    var p1p_l = v.distanceToOrigin();
-    var p1p_sqrl = p1p_l*p1p_l;
-
-    // In unit_dir basis, vector (this.r1-this.r2, this.length) is normal to the "weight line"
-    // We need a projection in this direction up to the segment line to know in which case we fall.
-
-    var x_p_2D = v.x*unit_dir.x + v.y*unit_dir.y;
-    // pythagore inc.
-    var y_p_2D = Math.sqrt(
-        Math.max( // Necessary because of rounded errors, pyth result can be <0 and this causes sqrt to return NaN...
-            0.0, p1p_sqrl - x_p_2D*x_p_2D // =  y_p_2D² by pythagore
-        )
-    );
-    var t = -y_p_2D/length;
-
-    var proj_x = x_p_2D + t*(r1 - r2);
-    // var proj_y = 0.0; // by construction
-
-    // Easy way to compute the distance now that we have the projection on the segment
-    var a = proj_x/length;
-    if(a>1.0){a=1.0;}
-    if(a<0.0){a=0.0;}
-
-    var proj = new Point2D(p1.x,p1.y);
-    proj.x += ( p2.x - proj.x ) * a;// compute the actual 3D projection
-    proj.y += ( p2.y - proj.y ) * a;
-    proj.z += ( p2.z - proj.z ) * a;
-
-    v.x = p.x-proj.x;
-    v.y = p.y-proj.y;
-    var l = v.distanceToOrigin();
-
-    return l - (a*r2+(1.0-a)*r1);
-};
-
+/**
+ *  An experimental skeletonizer which start from extremae and add nodes by growing from there.
+ *  Still not good enough.
+ */
 var QuiblierSkeletonizer = function(dist_img){
     this.distImg = dist_img;
 };
@@ -109,7 +63,7 @@ QuiblierSkeletonizer.prototype.buildHierarchy = function(){
                 p.x = x;
                 p.y = y;
                 var dist_sq = father ?
-                    capsuleDistance(node.getPosition(), father.getPosition(), nw, Math.ceil(father.weight), p)
+                    CapsuleDistance(node.getPosition(), father.getPosition(), nw, Math.ceil(father.weight), p)
                     : (x-cx)*(x-cx)+(y-cy)*(y-cy);
                 var condition = father ? dist_sq <=0 : dist_sq <= nw*nw;
                 if(condition){

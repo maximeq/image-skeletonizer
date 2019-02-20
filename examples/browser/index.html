@@ -20,7 +20,7 @@
 
 <script>
     var img = new Image();
-    img.src = './img/star.png';
+    img.src = './img/Img01.png';
     img.crossOrigin = "Anonymous";
     img.onload = function() {
         var canvas = document.getElementById('canvas');
@@ -31,7 +31,7 @@
         img.style.display = 'none';
         var img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        var skel_infos = ImageSkeletonizer.skeletonize(img_data);
+        var skel_infos = ImageSkeletonizer.skeletonize(img_data, Math.PI/13);
 
         // Draw the skeleton pixels in red over the distance image
         var canvas2 = document.getElementById('canvas2');
@@ -43,11 +43,12 @@
         var size4 = 4*greyImageData.width*greyImageData.height;
         for(var i=0; i<size4; i+=4){
             if(skelImageData.data[i] === 255 && skelImageData.data[i+1] === 0){
-                greyImageData.data[i] = 255;
+                greyImageData.data[i] = 0;
                 greyImageData.data[i+1] = 0;
-                greyImageData.data[i+2] = 0;
+                greyImageData.data[i+2] = 255;
             }
         }
+        ImageSkeletonizer.drawHierarchyInImageData(skel_infos.skeleton,greyImageData)
         ctx2.putImageData(greyImageData, 0,0);
 
         // Draw skeleton only

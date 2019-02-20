@@ -31,7 +31,7 @@ SkeletonNode.prototype.constructor = SkeletonNode;
 
 // Getters
 SkeletonNode.prototype.getKey = function(){
-    return this.computeKey(this.position.x,this.position.y);
+    return SkeletonNode.computeKey(this.position.x,this.position.y);
 }
 
 SkeletonNode.prototype.getPosition = function(){
@@ -59,6 +59,18 @@ SkeletonNode.prototype.setNeighbors = function(neighbors){
   this.neighbors = neighbors;
 };
 
+SkeletonNode.prototype.addNeighbor = function(n){
+  this.neighbors.set(n.getKey(),n);
+  n.neighbors.set(this.getKey(),this);
+};
 
+SkeletonNode.prototype.removeNeighbor = function(n){
+  this.neighbors.delete(n.getKey());
+  n.neighbors.delete(this.getKey());
+};
+
+SkeletonNode.prototype.hasNeighbor = function(n){
+  return this.neighbors.has(n.getKey());
+};
 
 module.exports = SkeletonNode;

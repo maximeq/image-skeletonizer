@@ -6,6 +6,8 @@ const SkeletonImage = require("./Skeletonizer/SkeletonImage.js");
 const Skeletonizer = require("./Skeletonizer/Skeletonizer.js");
 const QuiblierSkeletonizer = require("./Skeletonizer/QuiblierSkeletonizer.js");
 
+const CapsuleDistance = require("./Skeletonizer/CapsuleDistance.js");
+
 var ImageSkeletonizer = {};
 
 ImageSkeletonizer.BinaryImage = BinaryImage;
@@ -13,7 +15,7 @@ ImageSkeletonizer.IntDistanceImage = IntDistanceImage;
 ImageSkeletonizer.SkeletonImage = SkeletonImage;
 ImageSkeletonizer.Skeletonizer = Skeletonizer;
 
-ImageSkeletonizer.skeletonize = function(img_data){
+ImageSkeletonizer.skeletonize = function(img_data, angle){
 
     var binary_img  = new BinaryImage(img_data);
     var dist_img    = new IntDistanceImage(3,4, binary_img, 0);
@@ -21,7 +23,7 @@ ImageSkeletonizer.skeletonize = function(img_data){
     var skeletonizer = new Skeletonizer(skel_img, dist_img);
 
     return {
-        skeleton  : skeletonizer.buildHierarchy(),
+        skeleton  : skeletonizer.buildHierarchy({angle:angle ? angle : undefined}),
         binaryImg : binary_img,
         distImg   : dist_img,
         skelImg   : skel_img
@@ -85,7 +87,7 @@ ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data){
 
     for(var i=0; i<nodes.length; ++i){
         var n = nodes[i];
-        var idx = 4*(n.position.y*res.width+n.position.x);
+        var idx = 4*(Math.floor(n.position.y)*res.width+Math.floor(n.position.x));
         res.data[idx] = 255;
         res.data[idx+1] = 0;
         res.data[idx+2] = 0;

@@ -45,6 +45,12 @@ SkeletonImage.prototype.constructor = SkeletonImage;
 SkeletonImage.prototype.getIndex = function(x,y){
   return y*this.width+x;
 };
+SkeletonImage.prototype.getXFromIndex = function(idx){
+    return idx % this.width;
+};
+SkeletonImage.prototype.getYFromIndex = function(idx){
+  return Math.floor(idx / this.width);
+};
 
 /**
  *

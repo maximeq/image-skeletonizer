@@ -94,7 +94,7 @@
       return idx % this.width;
   };
   IntDistanceImage.prototype.getYFromIndex = function(idx){
-    return Math.round(idx / this.width);
+    return Math.floor(idx / this.width);
   };
 
 
@@ -229,6 +229,12 @@
 
   SkeletonImage.prototype.getIndex = function(x,y){
     return y*this.width+x;
+  };
+  SkeletonImage.prototype.getXFromIndex = function(idx){
+      return idx % this.width;
+  };
+  SkeletonImage.prototype.getYFromIndex = function(idx){
+    return Math.floor(idx / this.width);
   };
 
   /**
@@ -591,7 +597,7 @@
 
   // Getters
   SkeletonNode.prototype.getKey = function(){
-      return this.computeKey(this.position.x,this.position.y);
+      return SkeletonNode.computeKey(this.position.x,this.position.y);
   };
 
   SkeletonNode.prototype.getPosition = function(){
@@ -619,7 +625,19 @@
     this.neighbors = neighbors;
   };
 
+  SkeletonNode.prototype.addNeighbor = function(n){
+    this.neighbors.set(n.getKey(),n);
+    n.neighbors.set(this.getKey(),this);
+  };
 
+  SkeletonNode.prototype.removeNeighbor = function(n){
+    this.neighbors.delete(n.getKey());
+    n.neighbors.delete(this.getKey());
+  };
+
+  SkeletonNode.prototype.hasNeighbor = function(n){
+    return this.neighbors.has(n.getKey());
+  };
 
   var SkeletonNode_1 = SkeletonNode;
 
@@ -661,9 +679,17 @@
   };
 
   Vector2D.prototype.subPoints = function(p1,p2){
-      var x = p1.x-p2.x;
-      var y = p1.yp2.y;
+      this.x = p1.x-p2.x;
+      this.y = p1.y-p2.y;
       return this;
+  };
+
+  Vector2D.prototype.angle = function () {
+      // computes the angle in radians with respect to the positive x-axis
+      var angle = Math.atan2( this.y, this.x );
+      if ( angle < 0 ) angle += 2 * Math.PI;
+      return angle;
+
   };
 
   var Vector2D_1 = Vector2D;
@@ -675,38 +701,189 @@
 
   Skeletonizer.prototype.constructor = Skeletonizer;
 
-  Skeletonizer.prototype.buildHierarchy = function(){
+  Skeletonizer.prototype.buildHierarchy = function(params){
+
+      var params = params || {};
+
+      // Math.PI/13 correspond to the max angle accepting a set of 4 pixels
+      // Placed as : XXX
+      //                X
+      params.angle = params.angle || Math.PI/13;
 
       const size = this.skelImg.width*this.skelImg.height;
 
       let nodes = {};
       let roots = [];
-      let k = this._findNextPixelWithNeighbors(this.skelImg, this.distImg, 0);
+      let k = this._findNextPixelWithNeighbors(0);
       while(k<size){
-          if(nodes[k] === undefined){
-              const x = k % this.skelImg.width;
-              const y = Math.round(k / this.skelImg.width);
-              nodes[k] = new SkeletonNode_1(new Point2D_1(x+0.5,y+0.5),this.distImg.data[k]/this.distImg.getCoeff());
-              roots.push(nodes[k]);
-              this._recHierarchy(nodes[k], k, nodes);
+          const x = this.skelImg.getXFromIndex(k);
+          const y = this.skelImg.getYFromIndex(k);
+          var key = SkeletonNode_1.computeKey(x+0.5,y+0.5);
+          if(nodes[key] === undefined){
+              nodes[key] = new SkeletonNode_1(new Point2D_1(x+0.5,y+0.5),this.distImg.data[k]/this.distImg.getCoeff());
+              roots.push(nodes[key]);
+              this._recHierarchy(nodes[key], nodes);
           }
           k = this._findNextPixelWithNeighbors(k+1);
       }
 
-      return roots;
+      return this._simplifyHierarchy(roots, params.angle);
   };
 
   /**
    *  Simplify the hierarchy based on the given angle in radian.
-   *  Actually iterate through each branch and remove all pixels such that
+   *  Actually iterate through each branch and remove all pixels such that the
+   *  angle with the previous line is to big.
    */
-  Skeletonizer.prototype._simplifyHierarchy = function(root, angle, done){
-      var p0 = root.position();
-      if(root.getNeighbors().size() === 1){
-          var it = root.getNeighbors().keys();
-          var p1 = it.next().value.position();
-          var dir = new Vector2D_1().subPoints(p1,p0);
+  Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
+
+      // Process a branch from its root.
+      // Next is the direction in which we are looking
+      var processBranch = function(root, next){
+
+          var tmpv2 = new Vector2D_1();
+
+          var curr = next;
+          var dir = new Vector2D_1();
+          var curr_size = curr.getNeighbors().size;
+          var angle_ok = true;
+          var suspect = null;
+          var count = 0;
+          while(curr_size === 2 && angle_ok && !processed[curr.getKey()]){
+
+              var it = curr.getNeighbors().keys();
+
+              suspect = curr;
+              curr = curr.getNeighbors().get(it.next().value);
+              if(curr === root){
+                  curr = suspect.getNeighbors().get(it.next().value);
+              }
+
+              // Update dir using the second pixel on the branch for more accuracy
+              var discard__n = 3; // number of pixels to discard before actually comparing angles
+              if(count < discard__n){
+                  dir.x += curr.getPosition().x;
+                  dir.y += curr.getPosition().y;
+              }
+              if(count === discard__n-1){
+                  dir.x = (dir.x - discard__n*root.getPosition().x)/discard__n;
+                  dir.y = (dir.y - discard__n*root.getPosition().y)/discard__n;
+              }
+              count++;
+
+              tmpv2.subPoints(curr.getPosition(),root.getPosition());
+              var a = tmpv2.angle()-dir.angle();
+              if(Math.abs(a)<angle || count < discard__n){
+                  // remove suspect
+                  root.removeNeighbor(suspect);
+                  curr.removeNeighbor(suspect);
+                  root.addNeighbor(curr);
+              }else{
+                  angle_ok = false;
+              }
+              processed[suspect.getKey()] = true;
+
+              curr_size = curr.getNeighbors().size;
+          }
+
+          // If it's processed, that means we have reached an existing branch so we just do nothing
+          if(!processed[curr.getKey()]){
+              if(curr_size === 1){
+                  if(!angle_ok){
+                      // The very last pixel is out of angle constraint.
+                      // 3 choices :
+                      //  - discard it
+                      //  - Make an exception and keep it in the current branch
+                      //  - have it create a 2 pixel branch
+                      // Here we decide to discard it
+                      if(suspect){
+                          suspect.removeNeighbor(curr);
+                      }
+                  }
+                  // Very small branch of 1 pixel, we discard it
+                  if(count === 0){
+                      root.removeNeighbor(curr);
+                  }
+                  processed[curr.getKey()] = true;
+              }else if(curr_size === 2){ // angle_ok must be false
+                  // Here the point has gone off the angle constraint but is still on a unique line.
+                  // Suspect becames the new root and we go ahead
+                  processBranch(suspect,curr);
+                  processed[suspect.getKey()] = true;
+              }else{
+                  // here the point has more than 2 neighbors so it's a branching point.
+                  // We need to get all next branches
+                  var nexts = [];
+                  curr.getNeighbors().forEach(
+                      function (value, key, map) {
+                          if(value !== suspect && value !== root){
+                              nexts.push(value);
+                          }
+                      }
+                  );
+                  if(!angle_ok){
+                      // we discard this pixel
+                      suspect.removeNeighbor(curr);
+                      for(var i=0; i<nexts.length; ++i){
+                          curr.removeNeighbor[nexts[i]];
+                          suspect.addNeighbor[nexts[i]];
+                      }
+                      curr = suspect;
+                  }
+                  processed[curr.getKey()] = true;
+                  // We are branching so we need to disconnect all nexts nodes
+                  var neighbors2 = new Map(); // Second degree neighbors
+                  for(var i=0; i<nexts.length; ++i){
+                      for(var j=i+1; j<nexts.length; ++j){
+                          nexts[i].removeNeighbor(nexts[j]);
+                      }
+                      nexts[i].getNeighbors().forEach(function(value, key, map){
+                          neighbors2.set(key,value);
+                      });
+                  }
+                  neighbors2.delete(curr.getKey());
+                  // Also, if 2 next nodes share a neighbor, it mus be processed only by one of them.
+                  // The more connected will be kept.
+                  var vec2 = new Vector2D_1();
+                  neighbors2.forEach(function(n, key, map){
+                      var count = 0;
+                      for(var i=0; i<nexts.length;++i){
+                          if(n.hasNeighbor(nexts[i])){
+                              count++;
+                          }
+                      }
+                      if(count>1){
+                          for(var i=0; i<nexts.length;++i){
+                              if(n.hasNeighbor(nexts[i])){
+                                  vec2.subPoints(n.getPosition(),nexts[i].getPosition());
+                                  if(vec2.length() > 1){
+                                      n.removeNeighbor(nexts[i]);
+                                  }
+                              }
+                          }
+                      }
+                  });
+                  for(var i=0; i<nexts.length; ++i){
+                      processBranch(curr,nexts[i]);
+                  }
+              }
+          }
+      };
+
+      for(var i =0; i<roots.length; ++i){
+          var root = roots[i];
+          var processed = {};
+          processed[root.getKey()] = true;
+          var next = root.getNeighbors().get(root.getNeighbors().keys().next().value);
+
+          if(root.getNeighbors().size > 1){
+              throw "Hoho... Should not happen";
+          }
+
+          processBranch(root, root.getNeighbors().get(root.getNeighbors().keys().next().value));
       }
+
+      return roots;
   };
 
   /**
@@ -730,13 +907,16 @@
   // New : use x,y instead of 1 dimensionnal index
 
   // Private function used in _addNeighbors
+  // Return true if a node has been created
   Skeletonizer.prototype._checkAndCreate = function(x,y, node, nodes){
-      var key = SkeletonNode_1.computeKey(x,y);
+      var key = SkeletonNode_1.computeKey(x+0.5,y+0.5);
+      var created = false;
       if (nodes[key] === undefined){
-          nodes[key] = new SkeletonNode_1(new Point2D_1(x+0.5, y+0.5), this.distImg.getValue(x,y));
-          newElement ++;
+          nodes[key] = new SkeletonNode_1(new Point2D_1(x+0.5, y+0.5), this.distImg.getValue(x,y)/this.distImg.getCoeff());
+          created = true;
       }
       node.neighbors.set(key, nodes[key]);
+      return created;
   };
   Skeletonizer.prototype._addNeighbors = function(node, neighbors, nodes ){
       const width = this.skelImg.width;
@@ -745,36 +925,35 @@
       let newElement = 0;
 
       if (neighbors & 1){
-          this._checkAndCreate(x-1,y-1,node,nodes);
+          newElement += this._checkAndCreate(x-1,y-1,node,nodes) ? 1 : 0;
       }
 
       if (neighbors & 2){
-          var key = SkeletonNode_1.computeKey(x,y-1);
-          this._checkAndCreate(x,y-1,node,nodes);
+          newElement += this._checkAndCreate(x,y-1,node,nodes) ? 1 : 0;
       }
 
       if (neighbors & 4){
-          this._checkAndCreate(x+1,y-1,node,nodes);
+          newElement += this._checkAndCreate(x+1,y-1,node,nodes) ? 1 : 0;
       }
 
       if (neighbors & 8){
-          this._checkAndCreate(x+1,y,node,nodes);
+          newElement += this._checkAndCreate(x+1,y,node,nodes) ? 1 : 0;
       }
 
       if (neighbors & 16){
-          this._checkAndCreate(x+1,y+1,node,nodes);
+          newElement += this._checkAndCreate(x+1,y+1,node,nodes) ? 1 : 0;
       }
 
       if (neighbors & 32){
-          this._checkAndCreate(x,y+1,node,nodes);
+          newElement += this._checkAndCreate(x,y+1,node,nodes) ? 1 : 0;
       }
 
       if (neighbors & 64){
-          this._checkAndCreate(x-1,y+1,node,nodes);
+          newElement += this._checkAndCreate(x-1,y+1,node,nodes) ? 1 : 0;
       }
 
       if (neighbors & 128){
-          this._checkAndCreate(x-1,y,node,nodes);
+          newElement += this._checkAndCreate(x-1,y,node,nodes) ? 1 : 0;
       }
 
       return newElement;
@@ -880,54 +1059,66 @@
 
   var Skeletonizer_1 = Skeletonizer;
 
-  var capsuleDistance = function(p1,p2,r1,r2,p){
-      var unit_dir = new Point2D_1(
-          p2.x-p1.x,
-          p2.y-p1.y
-      );
-      var length = unit_dir.distanceToOrigin();
-      unit_dir.x = unit_dir.x/length;
-      unit_dir.y = unit_dir.y/length;
+  // This function is just computing the distance to a capsule
+  // Usefull to know exactly which part of the image is already covered
+  var capsuleDistance = (function(){
+      var unit_dir = new Vector2D_1();
+      var v = new Vector2D_1();
+      var proj = new Point2D_1();
+      return function(p1,p2,r1,r2,p){
+          unit_dir.x = p2.x-p1.x;
+          unit_dir.y = p2.y-p1.y;
 
-      var v = new Point2D_1(
-          p.x-p1.x,
-          p.y-p1.y
-      );
-      var p1p_l = v.distanceToOrigin();
-      var p1p_sqrl = p1p_l*p1p_l;
+          var length = unit_dir.length();
+          unit_dir.x = unit_dir.x/length;
+          unit_dir.y = unit_dir.y/length;
 
-      // In unit_dir basis, vector (this.r1-this.r2, this.length) is normal to the "weight line"
-      // We need a projection in this direction up to the segment line to know in which case we fall.
+          v.subPoints(p,p1);
 
-      var x_p_2D = v.x*unit_dir.x + v.y*unit_dir.y;
-      // pythagore inc.
-      var y_p_2D = Math.sqrt(
-          Math.max( // Necessary because of rounded errors, pyth result can be <0 and this causes sqrt to return NaN...
-              0.0, p1p_sqrl - x_p_2D*x_p_2D // =  y_p_2D² by pythagore
-          )
-      );
-      var t = -y_p_2D/length;
+          var p1p_l = v.length();
+          var p1p_sqrl = p1p_l*p1p_l;
 
-      var proj_x = x_p_2D + t*(r1 - r2);
-      // var proj_y = 0.0; // by construction
+          // In unit_dir basis, vector (this.r1-this.r2, this.length) is normal to the "weight line"
+          // We need a projection in this direction up to the segment line to know in which case we fall.
 
-      // Easy way to compute the distance now that we have the projection on the segment
-      var a = proj_x/length;
-      if(a>1.0){a=1.0;}
-      if(a<0.0){a=0.0;}
+          var x_p_2D = v.x*unit_dir.x + v.y*unit_dir.y;
+          // pythagore inc.
+          var y_p_2D = Math.sqrt(
+              Math.max( // Necessary because of rounded errors, pyth result can be <0 and this causes sqrt to return NaN...
+                  0.0, p1p_sqrl - x_p_2D*x_p_2D // =  y_p_2D² by pythagore
+              )
+          );
+          var t = -y_p_2D/length;
 
-      var proj = new Point2D_1(p1.x,p1.y);
-      proj.x += ( p2.x - proj.x ) * a;// compute the actual 3D projection
-      proj.y += ( p2.y - proj.y ) * a;
-      proj.z += ( p2.z - proj.z ) * a;
+          var proj_x = x_p_2D + t*(r1 - r2);
+          // var proj_y = 0.0; // by construction
 
-      v.x = p.x-proj.x;
-      v.y = p.y-proj.y;
-      var l = v.distanceToOrigin();
+          // Easy way to compute the distance now that we have the projection on the segment
+          var a = proj_x/length;
+          if(a>1.0){a=1.0;}
+          if(a<0.0){a=0.0;}
 
-      return l - (a*r2+(1.0-a)*r1);
-  };
+          proj.x = p1.x;
+          proj.y = p1.y;
+          proj.x += ( p2.x - proj.x ) * a;// compute the actual 3D projection
+          proj.y += ( p2.y - proj.y ) * a;
+          proj.z += ( p2.z - proj.z ) * a;
 
+          v.x = p.x-proj.x;
+          v.y = p.y-proj.y;
+          var l = v.length();
+
+          return l - (a*r2+(1.0-a)*r1);
+      };
+  })();
+
+
+  var CapsuleDistance = capsuleDistance;
+
+  /**
+   *  An experimental skeletonizer which start from extremae and add nodes by growing from there.
+   *  Still not good enough.
+   */
   var QuiblierSkeletonizer = function(dist_img){
       this.distImg = dist_img;
   };
@@ -983,7 +1174,7 @@
                   p.x = x;
                   p.y = y;
                   var dist_sq = father ?
-                      capsuleDistance(node.getPosition(), father.getPosition(), nw, Math.ceil(father.weight), p)
+                      CapsuleDistance(node.getPosition(), father.getPosition(), nw, Math.ceil(father.weight), p)
                       : (x-cx)*(x-cx)+(y-cy)*(y-cy);
                   var condition = father ? dist_sq <=0 : dist_sq <= nw*nw;
                   if(condition){
@@ -1160,7 +1351,7 @@
   ImageSkeletonizer.SkeletonImage = SkeletonImage_1;
   ImageSkeletonizer.Skeletonizer = Skeletonizer_1;
 
-  ImageSkeletonizer.skeletonize = function(img_data){
+  ImageSkeletonizer.skeletonize = function(img_data, angle){
 
       var binary_img  = new BinaryImage_1(img_data);
       var dist_img    = new IntDistanceImage_1(3,4, binary_img, 0);
@@ -1168,7 +1359,7 @@
       var skeletonizer = new Skeletonizer_1(skel_img, dist_img);
 
       return {
-          skeleton  : skeletonizer.buildHierarchy(),
+          skeleton  : skeletonizer.buildHierarchy({angle:angle ? angle : undefined}),
           binaryImg : binary_img,
           distImg   : dist_img,
           skelImg   : skel_img
@@ -1232,7 +1423,7 @@
 
       for(var i=0; i<nodes.length; ++i){
           var n = nodes[i];
-          var idx = 4*(n.position.y*res.width+n.position.x);
+          var idx = 4*(Math.floor(n.position.y)*res.width+Math.floor(n.position.x));
           res.data[idx] = 255;
           res.data[idx+1] = 0;
           res.data[idx+2] = 0;

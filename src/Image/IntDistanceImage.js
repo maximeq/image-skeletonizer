@@ -46,7 +46,7 @@ IntDistanceImage.prototype.getXFromIndex = function(idx){
     return idx % this.width;
 };
 IntDistanceImage.prototype.getYFromIndex = function(idx){
-  return Math.round(idx / this.width);
+  return Math.floor(idx / this.width);
 };
 
 
