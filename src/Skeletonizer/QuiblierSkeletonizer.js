@@ -248,10 +248,7 @@ QuiblierSkeletonizer.prototype.buildHierarchy = function(){
         counter++;
     }
 
-    return {
-        hierarchy:nodes,
-        covered:covered
-    };
+    return nodes;
 };
 
 module.exports = QuiblierSkeletonizer;

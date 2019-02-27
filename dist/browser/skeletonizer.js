@@ -185,6 +185,32 @@
 
   var IntDistanceImage_1 = IntDistanceImage;
 
+  var Point2D = function(x, y){
+    this.x = x;
+    this.y = y;
+  };
+
+  Point2D.prototype.distanceToOrigin = function(p){
+      var x = this.x;
+      var y = this.y;
+      return Math.sqrt(x*x+y*y);
+  };
+
+  Point2D.prototype.distanceTo = function(p){
+      var x = this.x-p.x;
+      var y = this.y-p.y;
+      return Math.sqrt(x*x+y*y);
+  };
+
+  Point2D.prototype.barycenter = function(p1,p2,w1,w2){
+      var t = w2/(w1+w2);
+      this.x = (1-t)*p1.x +t*p2.x;
+      this.y = (1-t)*p1.y +t*p2.y;
+      return this;
+  };
+
+  var Point2D_1 = Point2D;
+
   /**
    *  @param {BinaryImage} source The source image in binary
    *  @param {number} uncolored The pixel value of source that will be considered as uncolored. Usually 0, but can be 1.
@@ -641,32 +667,6 @@
 
   var SkeletonNode_1 = SkeletonNode;
 
-  var Point2D = function(x, y){
-    this.x = x;
-    this.y = y;
-  };
-
-  Point2D.prototype.distanceToOrigin = function(p){
-      var x = this.x;
-      var y = this.y;
-      return Math.sqrt(x*x+y*y);
-  };
-
-  Point2D.prototype.distanceTo = function(p){
-      var x = this.x-p.x;
-      var y = this.y-p.y;
-      return Math.sqrt(x*x+y*y);
-  };
-
-  Point2D.prototype.barycenter = function(p1,p2,w1,w2){
-      var t = w2/(w1+w2);
-      this.x = (1-t)*p1.x +t*p2.x;
-      this.y = (1-t)*p1.y +t*p2.y;
-      return this;
-  };
-
-  var Point2D_1 = Point2D;
-
   var Vector2D = function(x, y){
     this.x = x || 0;
     this.y = y || 0;
@@ -702,6 +702,11 @@
   Skeletonizer.prototype.constructor = Skeletonizer;
 
   /**
+   *  Improvements notes :
+   *      - Currently the weight factor is used to split while processing a branch, compared to the origin.
+   *        It would be better to split only if the difference is to high compared to the linear variation
+   *        along a branch.
+   *
    *  @param {Object} params
    *  @param {number} params.angle Maximum angle difference allowed along a branch. Default to PI/13.
    *  @param {number} params.weightFactor Maximum factor between the larger and the smaller weights (ie max < factor*min), in [1,+infinity]. Default to 1.25.
@@ -1360,10 +1365,7 @@
           counter++;
       }
 
-      return {
-          hierarchy:nodes,
-          covered:covered
-      };
+      return nodes;
   };
 
   var QuiblierSkeletonizer_1 = QuiblierSkeletonizer;
@@ -1393,38 +1395,49 @@
       };
   };
 
+  /**
+   *  Experimental alternative algorithm for skeletonization.
+   */
   ImageSkeletonizer.skeletonizeQ = function(img_data){
 
       var binary_img  = new BinaryImage_1(img_data);
       var dist_img    = new IntDistanceImage_1(3,4, binary_img, 0);
       var skeletonizer = new QuiblierSkeletonizer_1(dist_img);
 
-
       var h = skeletonizer.buildHierarchy();
       return {
-          skeleton  : h.hierarchy,
+          skeleton  : h,
           binaryImg : binary_img,
-          distImg   : dist_img,
-          covered   : h.covered
+          distImg   : dist_img
       };
   };
 
   /**
    *  @param {Array.<SkeletonNode>} h A hierarchy built with buildHierarchy of a Skeletonizer.
    *  @param {ImageData} dist_img The image data in which the hiearchy must be drawn (don't forget to clone it if necessary, it will be modified)
+   *  @param {string} mode Either "circle" or "capsule" to draw only the node of the graph or the entire capsule cover.
    */
-  ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data){
+  ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data, mode){
       var res = img_data;
+
+      var capsule = mode === "capsule";
+
+      var p = new Point2D_1();
 
       var nodes_set = {};
       var nodes = [];
+      var segs = [];
 
       var recFindAllNodes = function(node){
-          var k = node.position.x + ";" + node.position.y;
+          var k = node.getKey();
           if(nodes_set[k] === undefined){
               nodes_set[k] = node;
               nodes.push(node);
               node.getNeighbors().forEach(function(value, key, map) {
+                  var vk = value.getKey();
+                  if(nodes_set[vk] === undefined){
+                      segs.push([node,value]);
+                  }
                   recFindAllNodes(value);
               });
           }
@@ -1436,11 +1449,24 @@
       for(var x=0; x<res.width; ++x){
           for(var y=0; y<res.height; ++y){
               var avg_n = 0;
-              for(var i=0; i<nodes.length; ++i){
-                  var cx = nodes[i].position.x+0.5;
-                  var cy = nodes[i].position.y+0.5;
-                  if((x+0.5-cx)*(x+0.5-cx)+(y+0.5-cy)*(y+0.5-cy) <= nodes[i].weight*nodes[i].weight){
-                      avg_n++;
+              p.x = x+0.5;
+              p.y = y+0.5;
+              if(capsule){
+                  for(var i=0; i<segs.length; ++i){
+                      var n0 = segs[i][0];
+                      var n1 = segs[i][1];
+                      var dist = CapsuleDistance(n0.getPosition(), n1.getPosition(), n0.getWeight(), n1.getWeight(), p);
+                      if(dist<=0){
+                          avg_n++;
+                      }
+                  }
+              }else{
+                  for(var i=0; i<nodes.length; ++i){
+                      var cx = Math.floor(nodes[i].getPosition().x)+0.5;
+                      var cy = Math.floor(nodes[i].getPosition().y)+0.5;
+                      if((p.x-cx)*(p.x-cx)+(p.y-cy)*(p.y-cy) <= nodes[i].getWeight()*nodes[i].getWeight()){
+                          avg_n++;
+                      }
                   }
               }
               var idx = 4*(y*res.width+x);
@@ -1459,23 +1485,12 @@
       return res;
   };
 
-  ImageSkeletonizer.drawCoverInImageData = function(covered,img_data){
-      var res = img_data;
-
-      for(var x=0; x<res.width; ++x){
-          for(var y=0; y<res.height; ++y){
-              var idx = y*res.width+x;
-              if(covered[idx]){
-                  idx = 4*idx;
-                  res.data[idx+1] = (res.data[idx+1]+255)/2;
-              }
-          }
-      }
-
-      return res;
-  };
-
-  ImageSkeletonizer.drawHierarchyInCanvas = function(h,cvs){
+  /**
+   *  Draw the actual skeleton by connecting points with straight lines.
+   *  @param {Array.<SkeletonNode>} skel The hierarchy to draw.
+   *  @param {Canvas} cvs An HTML5 Canvas. Dimensions must be the same as the image dimension on which skel was computed.
+   */
+  ImageSkeletonizer.drawSkeletonInCanvas = function(skel,cvs){
       var ctx = cvs.getContext("2d");
 
       var nodes_set = {};
@@ -1491,8 +1506,8 @@
               });
           }
       };
-      for(var i=0; i<h.length; ++i){
-          recFindAllNodes(h[i]);
+      for(var i=0; i<skel.length; ++i){
+          recFindAllNodes(skel[i]);
       }
 
       for(var i=0; i<nodes.length; ++i){

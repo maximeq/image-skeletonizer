@@ -20,7 +20,7 @@
 
 <script>
     var img = new Image();
-    img.src = './img/star.png';
+    img.src = './img/Img01.png';
     img.crossOrigin = "Anonymous";
     img.onload = function() {
         var canvas = document.getElementById('canvas');
@@ -66,14 +66,12 @@
         ctx3.putImageData(
             ImageSkeletonizer.drawHierarchyInImageData(
                 skel_infos_q.skeleton,
-                ImageSkeletonizer.drawCoverInImageData(
-                    skel_infos_q.covered,
-                    skel_infos_q.distImg.getImageData()
-                ),
+                skel_infos_q.distImg.getImageData(),
+                "capsule"
             ),
             0,0
         );
-        ImageSkeletonizer.drawHierarchyInCanvas(skel_infos_q.skeleton,canvas3);
+        ImageSkeletonizer.drawSkeletonInCanvas(skel_infos_q.skeleton,canvas3);
 
     };
 </script>

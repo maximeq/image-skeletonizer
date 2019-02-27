@@ -48,7 +48,7 @@
                 greyImageData.data[i+2] = 255;
             }
         }
-        ImageSkeletonizer.drawHierarchyInImageData(skel_infos.skeleton,greyImageData)
+        ImageSkeletonizer.drawHierarchyInImageData(skel_infos.skeleton,greyImageData, "capsule")
         ctx2.putImageData(greyImageData, 0,0);
 
         // Draw skeleton only
