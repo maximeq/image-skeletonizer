@@ -701,6 +701,11 @@
 
   Skeletonizer.prototype.constructor = Skeletonizer;
 
+  /**
+   *  @param {Object} params
+   *  @param {number} params.angle Maximum angle difference allowed along a branch. Default to PI/13.
+   *  @param {number} params.weightFactor Maximum factor between the larger and the smaller weights (ie max < factor*min), in [1,+infinity]. Default to 1.25.
+   */
   Skeletonizer.prototype.buildHierarchy = function(params){
 
       var params = params || {};
@@ -709,6 +714,7 @@
       // Placed as : XXX
       //                X
       params.angle = params.angle || Math.PI/13;
+      params.weightFactor = params.weightFactor || 1.25;
 
       const size = this.skelImg.width*this.skelImg.height;
 
@@ -727,15 +733,22 @@
           k = this._findNextPixelWithNeighbors(k+1);
       }
 
-      return this._simplifyHierarchy(roots, params.angle);
+      return this._simplifyHierarchy(roots, params.angle, params.weightFactor);
   };
 
   /**
    *  Simplify the hierarchy based on the given angle in radian.
    *  Actually iterate through each branch and remove all pixels such that the
-   *  angle with the previous line is to big.
+   *  angle with the previous line, or the weihgt difference with the previous point is to big.
+   *  @param {Array.<SkeletonNode>} roots
+   *  @param {number} angle Maximum angle difference allowed
+   *  @param {number} weight_factor Maximum factor between the larger and the smaller weights. in [1,+infinity]
    */
-  Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
+  Skeletonizer.prototype._simplifyHierarchy = function(roots, angle, weight_factor){
+
+      if(weight_factor < 1.0){
+          throw "weight_factor must be greater than 1 as it compares weight_max and weight_factor*weight_min";
+      }
 
       // Process a branch from its root.
       // Next is the direction in which we are looking
@@ -747,9 +760,10 @@
           var dir = new Vector2D_1();
           var curr_size = curr.getNeighbors().size;
           var angle_ok = true;
+          var weight_ok = true;
           var suspect = null;
           var count = 0;
-          while(curr_size === 2 && angle_ok && !processed[curr.getKey()]){
+          while(curr_size === 2 && angle_ok && weight_ok&& !processed[curr.getKey()]){
 
               var it = curr.getNeighbors().keys();
 
@@ -760,7 +774,7 @@
               }
 
               // Update dir using the second pixel on the branch for more accuracy
-              var discard__n = 3; // number of pixels to discard before actually comparing angles
+              var discard__n = 3; // number of pixels to discard before actually comparing angles and weight
               if(count < discard__n){
                   dir.x += curr.getPosition().x;
                   dir.y += curr.getPosition().y;
@@ -773,14 +787,24 @@
 
               tmpv2.subPoints(curr.getPosition(),root.getPosition());
               var a = tmpv2.angle()-dir.angle();
-              if(Math.abs(a)<angle || count < discard__n){
+              if(!(Math.abs(a)<angle || count < discard__n)){
+                  angle_ok = false;
+              }
+              if(count >= discard__n){
+                  var w_ratio = root.getWeight()/ curr.getWeight();
+                  if(w_ratio < 1){ w_ratio = 1/w_ratio; }
+
+                  if(w_ratio > weight_factor){
+                      weight_ok = false;
+                  }
+              }
+              if(angle_ok && weight_ok){
                   // remove suspect
                   root.removeNeighbor(suspect);
                   curr.removeNeighbor(suspect);
                   root.addNeighbor(curr);
-              }else{
-                  angle_ok = false;
               }
+
               processed[suspect.getKey()] = true;
 
               curr_size = curr.getNeighbors().size;
@@ -789,8 +813,8 @@
           // If it's processed, that means we have reached an existing branch so we just do nothing
           if(!processed[curr.getKey()]){
               if(curr_size === 1){
-                  if(!angle_ok){
-                      // The very last pixel is out of angle constraint.
+                  if(!angle_ok || !weight_ok){
+                      // The very last pixel is out of constraints.
                       // 3 choices :
                       //  - discard it
                       //  - Make an exception and keep it in the current branch
@@ -805,7 +829,7 @@
                       root.removeNeighbor(curr);
                   }
                   processed[curr.getKey()] = true;
-              }else if(curr_size === 2){ // angle_ok must be false
+              }else if(curr_size === 2){ // angle_ok or weihgt_ok must be false
                   // Here the point has gone off the angle constraint but is still on a unique line.
                   // Suspect becames the new root and we go ahead
                   processBranch(suspect,curr);
@@ -821,7 +845,7 @@
                           }
                       }
                   );
-                  if(!angle_ok){
+                  if(!angle_ok || !weight_ok){
                       // we discard this pixel
                       suspect.removeNeighbor(curr);
                       for(var i=0; i<nexts.length; ++i){
@@ -1351,7 +1375,7 @@
   ImageSkeletonizer.SkeletonImage = SkeletonImage_1;
   ImageSkeletonizer.Skeletonizer = Skeletonizer_1;
 
-  ImageSkeletonizer.skeletonize = function(img_data, angle){
+  ImageSkeletonizer.skeletonize = function(img_data, angle, weight_factor){
 
       var binary_img  = new BinaryImage_1(img_data);
       var dist_img    = new IntDistanceImage_1(3,4, binary_img, 0);
@@ -1359,7 +1383,10 @@
       var skeletonizer = new Skeletonizer_1(skel_img, dist_img);
 
       return {
-          skeleton  : skeletonizer.buildHierarchy({angle:angle ? angle : undefined}),
+          skeleton  : skeletonizer.buildHierarchy({
+              angle:angle ? angle : undefined,
+              weightFactor:weight_factor ? weight_factor : undefined
+          }),
           binaryImg : binary_img,
           distImg   : dist_img,
           skelImg   : skel_img

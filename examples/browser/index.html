@@ -31,7 +31,7 @@
         img.style.display = 'none';
         var img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        var skel_infos = ImageSkeletonizer.skeletonize(img_data, Math.PI/13);
+        var skel_infos = ImageSkeletonizer.skeletonize(img_data, Math.PI/13, 1.25);
 
         // Draw the skeleton pixels in red over the distance image
         var canvas2 = document.getElementById('canvas2');

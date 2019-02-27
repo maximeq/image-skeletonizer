@@ -11,6 +11,16 @@ var Skeletonizer = function(skel_img, dist_img){
 
 Skeletonizer.prototype.constructor = Skeletonizer;
 
+/**
+ *  Improvements notes :
+ *      - Currently the weight factor is used to split while processing a branch, compared to the origin.
+ *        It would be better to split only if the difference is to high compared to the linear variation
+ *        along a branch.
+ *
+ *  @param {Object} params
+ *  @param {number} params.angle Maximum angle difference allowed along a branch. Default to PI/13.
+ *  @param {number} params.weightFactor Maximum factor between the larger and the smaller weights (ie max < factor*min), in [1,+infinity]. Default to 1.25.
+ */
 Skeletonizer.prototype.buildHierarchy = function(params){
 
     var params = params || {};
@@ -19,6 +29,7 @@ Skeletonizer.prototype.buildHierarchy = function(params){
     // Placed as : XXX
     //                X
     params.angle = params.angle || Math.PI/13;
+    params.weightFactor = params.weightFactor || 1.25;
 
     const size = this.skelImg.width*this.skelImg.height;
 
@@ -37,15 +48,22 @@ Skeletonizer.prototype.buildHierarchy = function(params){
         k = this._findNextPixelWithNeighbors(k+1);
     }
 
-    return this._simplifyHierarchy(roots, params.angle);
+    return this._simplifyHierarchy(roots, params.angle, params.weightFactor);
 }
 
 /**
  *  Simplify the hierarchy based on the given angle in radian.
  *  Actually iterate through each branch and remove all pixels such that the
- *  angle with the previous line is to big.
+ *  angle with the previous line, or the weihgt difference with the previous point is to big.
+ *  @param {Array.<SkeletonNode>} roots
+ *  @param {number} angle Maximum angle difference allowed
+ *  @param {number} weight_factor Maximum factor between the larger and the smaller weights. in [1,+infinity]
  */
-Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
+Skeletonizer.prototype._simplifyHierarchy = function(roots, angle, weight_factor){
+
+    if(weight_factor < 1.0){
+        throw "weight_factor must be greater than 1 as it compares weight_max and weight_factor*weight_min";
+    }
 
     // Process a branch from its root.
     // Next is the direction in which we are looking
@@ -57,9 +75,10 @@ Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
         var dir = new Vector2D();
         var curr_size = curr.getNeighbors().size;
         var angle_ok = true;
+        var weight_ok = true;
         var suspect = null;
         var count = 0;
-        while(curr_size === 2 && angle_ok && !processed[curr.getKey()]){
+        while(curr_size === 2 && angle_ok && weight_ok&& !processed[curr.getKey()]){
 
             var it = curr.getNeighbors().keys();
 
@@ -70,7 +89,7 @@ Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
             }
 
             // Update dir using the second pixel on the branch for more accuracy
-            var discard__n = 3; // number of pixels to discard before actually comparing angles
+            var discard__n = 3; // number of pixels to discard before actually comparing angles and weight
             if(count < discard__n){
                 dir.x += curr.getPosition().x;
                 dir.y += curr.getPosition().y;
@@ -83,14 +102,24 @@ Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
 
             tmpv2.subPoints(curr.getPosition(),root.getPosition());
             var a = tmpv2.angle()-dir.angle();
-            if(Math.abs(a)<angle || count < discard__n){
+            if(!(Math.abs(a)<angle || count < discard__n)){
+                angle_ok = false;
+            }
+            if(count >= discard__n){
+                var w_ratio = root.getWeight()/ curr.getWeight();
+                if(w_ratio < 1){ w_ratio = 1/w_ratio; }
+
+                if(w_ratio > weight_factor){
+                    weight_ok = false;
+                }
+            }
+            if(angle_ok && weight_ok){
                 // remove suspect
                 root.removeNeighbor(suspect);
                 curr.removeNeighbor(suspect);
                 root.addNeighbor(curr);
-            }else{
-                angle_ok = false;
             }
+
             processed[suspect.getKey()] = true;
 
             curr_size = curr.getNeighbors().size;
@@ -99,8 +128,8 @@ Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
         // If it's processed, that means we have reached an existing branch so we just do nothing
         if(!processed[curr.getKey()]){
             if(curr_size === 1){
-                if(!angle_ok){
-                    // The very last pixel is out of angle constraint.
+                if(!angle_ok || !weight_ok){
+                    // The very last pixel is out of constraints.
                     // 3 choices :
                     //  - discard it
                     //  - Make an exception and keep it in the current branch
@@ -115,7 +144,7 @@ Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
                     root.removeNeighbor(curr);
                 }
                 processed[curr.getKey()] = true;
-            }else if(curr_size === 2){ // angle_ok must be false
+            }else if(curr_size === 2){ // angle_ok or weihgt_ok must be false
                 // Here the point has gone off the angle constraint but is still on a unique line.
                 // Suspect becames the new root and we go ahead
                 processBranch(suspect,curr)
@@ -131,7 +160,7 @@ Skeletonizer.prototype._simplifyHierarchy = function(roots, angle){
                         }
                     }
                 );
-                if(!angle_ok){
+                if(!angle_ok || !weight_ok){
                     // we discard this pixel
                     suspect.removeNeighbor(curr);
                     for(var i=0; i<nexts.length; ++i){

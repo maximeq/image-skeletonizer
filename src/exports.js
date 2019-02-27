@@ -15,7 +15,7 @@ ImageSkeletonizer.IntDistanceImage = IntDistanceImage;
 ImageSkeletonizer.SkeletonImage = SkeletonImage;
 ImageSkeletonizer.Skeletonizer = Skeletonizer;
 
-ImageSkeletonizer.skeletonize = function(img_data, angle){
+ImageSkeletonizer.skeletonize = function(img_data, angle, weight_factor){
 
     var binary_img  = new BinaryImage(img_data);
     var dist_img    = new IntDistanceImage(3,4, binary_img, 0);
@@ -23,7 +23,10 @@ ImageSkeletonizer.skeletonize = function(img_data, angle){
     var skeletonizer = new Skeletonizer(skel_img, dist_img);
 
     return {
-        skeleton  : skeletonizer.buildHierarchy({angle:angle ? angle : undefined}),
+        skeleton  : skeletonizer.buildHierarchy({
+            angle:angle ? angle : undefined,
+            weightFactor:weight_factor ? weight_factor : undefined
+        }),
         binaryImg : binary_img,
         distImg   : dist_img,
         skelImg   : skel_img
