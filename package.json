@@ -25,7 +25,7 @@
     "src/*",
     "dist/*"
   ],
-  "browser": "./dist/browser/skeletonizer.js",
+  "browser": "./dist/browser/image-skeletonizer.js",
   "author": "Maxime Quiblier <maximequiblier@gmail.com>",
   "license": "MIT",
   "hash": "cbb66061ffd05bc5f6673756895b3f6f03e7202a"

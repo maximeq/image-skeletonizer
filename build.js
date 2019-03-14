@@ -36,7 +36,7 @@ build({
 }, {
     format: 'umd',
     name: 'ImageSkeletonizer',
-    file: './dist/browser/skeletonizer.js'
+    file: './dist/browser/image-skeletonizer.js'
 });
 
 
@@ -60,6 +60,6 @@ build({
 }, {
     format: 'umd',
     name: 'ImageSkeletonizer',
-    file: './dist/browser/skeletonizer.min.js'
+    file: './dist/browser/image-skeletonizer.min.js'
 });
 
