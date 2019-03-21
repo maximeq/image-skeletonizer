@@ -211,13 +211,22 @@ Skeletonizer.prototype._simplifyHierarchy = function(roots, angle, weight_factor
 
     for(var i =0; i<roots.length; ++i){
         var root = roots[i];
+        var sent = null;
+        if(root.getNeighbors().size > 1){
+            // create a sentinel to manage cases where we immediately have 2 branches.
+            sent = new SkeletonNode(
+                new Point2D(root.getPosition().x,root.getPosition().y-1),
+                root.getWeight()
+            );
+            root.addNeighbor(sent);
+            roots[i] = sent;
+            root = sent;
+            // TODO : remove it afterwards ?
+        }
+
         var processed = {};
         processed[root.getKey()] = true;
         var next = root.getNeighbors().get(root.getNeighbors().keys().next().value);
-
-        if(root.getNeighbors().size > 1){
-            throw "Hoho... Should not happen";
-        }
 
         processBranch(root, root.getNeighbors().get(root.getNeighbors().keys().next().value));
     }
