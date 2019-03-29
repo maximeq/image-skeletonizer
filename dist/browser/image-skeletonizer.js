@@ -850,15 +850,15 @@
                           }
                       }
                   );
-                  if(!angle_ok || !weight_ok){
-                      // we discard this pixel
-                      suspect.removeNeighbor(curr);
-                      for(var i=0; i<nexts.length; ++i){
-                          curr.removeNeighbor[nexts[i]];
-                          suspect.addNeighbor[nexts[i]];
-                      }
-                      curr = suspect;
+                  // Discard the suspect even if it was not verifying the weight and angle checks
+                  // We could replace curr with suspect instead but its more complex (TODO ?)
+                  if(suspect){
+                      root.removeNeighbor(suspect);
+                      curr.removeNeighbor(suspect);
+                      root.addNeighbor(curr);
                   }
+
+
                   processed[curr.getKey()] = true;
                   // We are branching so we need to disconnect all nexts nodes
                   var neighbors2 = new Map(); // Second degree neighbors
