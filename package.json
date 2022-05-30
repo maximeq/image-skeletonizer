@@ -6,10 +6,9 @@
   "module": "src/exports.js",
   "browser": "./dist/image-skeletonizer.min.js",
   "scripts": {
-    "build": "rollup -c",
-    "start": "http-server -o examples/browser/index.html -c-1",
-    "make-doc": "node make-doc.js",
-    "lint": "eslint --env node --env browser --env es6 **.js"
+    "build": "npx rollup -c",
+    "start": "npx http-server -o examples/browser/index.html -c-1",
+    "make-doc": "node make-doc.js"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.0",
