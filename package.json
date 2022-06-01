@@ -7,8 +7,10 @@
   "browser": "./dist/image-skeletonizer.min.js",
   "scripts": {
     "build": "npx rollup -c",
-    "start": "npx http-server -o examples/browser/index.html -c-1",
-    "make-doc": "node make-doc.js"
+    "start": "npx http-server -o examples/browser -c-1",
+    "doc": "node make-doc.js",
+    "dev": "npm run build && npm run start",
+    "watch": "npx rollup -c -w"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.0",

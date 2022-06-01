@@ -1,22 +1,15 @@
 
-const BinaryImage = require("./Image/BinaryImage.js");
-const IntDistanceImage = require("./Image/IntDistanceImage.js");
+import BinaryImage from "./Image/BinaryImage.js";
+import IntDistanceImage from "./Image/IntDistanceImage.js";
 
-const Point2D = require("./Skeletonizer/Point2D.js");
-const SkeletonImage = require("./Skeletonizer/SkeletonImage.js");
-const Skeletonizer = require("./Skeletonizer/Skeletonizer.js");
-const QuiblierSkeletonizer = require("./Skeletonizer/QuiblierSkeletonizer.js");
+import Point2D from "./Skeletonizer/Point2D.js";
+import SkeletonImage from "./Skeletonizer/SkeletonImage.js";
+import Skeletonizer from "./Skeletonizer/Skeletonizer.js";
+import QuiblierSkeletonizer from "./Skeletonizer/QuiblierSkeletonizer.js";
 
-const CapsuleDistance = require("./Skeletonizer/CapsuleDistance.js");
+import CapsuleDistance from "./Skeletonizer/CapsuleDistance.js";
 
-var ImageSkeletonizer = {};
-
-ImageSkeletonizer.BinaryImage = BinaryImage;
-ImageSkeletonizer.IntDistanceImage = IntDistanceImage;
-ImageSkeletonizer.SkeletonImage = SkeletonImage;
-ImageSkeletonizer.Skeletonizer = Skeletonizer;
-
-ImageSkeletonizer.skeletonize = function(img_data, angle, weight_factor){
+let skeletonize = function(img_data, angle, weight_factor){
 
     var binary_img  = new BinaryImage(img_data);
     var dist_img    = new IntDistanceImage(3,4, binary_img, 0);
@@ -37,7 +30,7 @@ ImageSkeletonizer.skeletonize = function(img_data, angle, weight_factor){
 /**
  *  Experimental alternative algorithm for skeletonization.
  */
-ImageSkeletonizer.skeletonizeQ = function(img_data){
+let skeletonizeQ = function(img_data){
 
     var binary_img  = new BinaryImage(img_data);
     var dist_img    = new IntDistanceImage(3,4, binary_img, 0);
@@ -56,7 +49,7 @@ ImageSkeletonizer.skeletonizeQ = function(img_data){
  *  @param {ImageData} dist_img The image data in which the hiearchy must be drawn (don't forget to clone it if necessary, it will be modified)
  *  @param {string} mode Either "circle" or "capsule" to draw only the node of the graph or the entire capsule cover.
  */
-ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data, mode){
+let drawHierarchyInImageData = function(h, img_data, mode){
     var res = img_data;
 
     var capsule = mode === "capsule";
@@ -129,7 +122,7 @@ ImageSkeletonizer.drawHierarchyInImageData = function(h, img_data, mode){
  *  @param {Array.<SkeletonNode>} skel The hierarchy to draw.
  *  @param {Canvas} cvs An HTML5 Canvas. Dimensions must be the same as the image dimension on which skel was computed.
  */
-ImageSkeletonizer.drawSkeletonInCanvas = function(skel,cvs){
+let drawSkeletonInCanvas = function(skel,cvs){
     var ctx = cvs.getContext("2d");
 
     var nodes_set = {};
@@ -165,6 +158,16 @@ ImageSkeletonizer.drawSkeletonInCanvas = function(skel,cvs){
     }
 };
 
-module.exports = ImageSkeletonizer;
+export {
+    Point2D,
+    SkeletonImage,
+    Skeletonizer,
+    QuiblierSkeletonizer,
+    CapsuleDistance,
+    skeletonize,
+    skeletonizeQ,
+    drawHierarchyInImageData,
+    drawSkeletonInCanvas,
+}
 
 
