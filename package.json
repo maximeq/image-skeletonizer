@@ -3,23 +3,25 @@
   "version": "1.0.0",
   "description": "Library computing a skeleton from a bicolor image.",
   "main": "src/exports.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node build.js",
-    "lint": "eslint --env node --env browser --env es6 **.js",
-    "make-doc": "node make-doc.js"
+        "build": "npx rollup -c",
+        "start": "npx http-server ./ -c-1 -o examples/browser",
+        "dev": "npm run build && npm run start"
   },
   "dependencies": {
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^11.1.1",
     "eslint": "^4.11.0",
     "fs-extra": "^7.0.1",
     "jsdoc-api": "^4.0.3",
-    "rollup": "^0.67.1",
-    "rollup-plugin-commonjs": "^9.2.0",
-    "rollup-plugin-node-resolve": "^3.4.0",
-    "rollup-plugin-terser": "^3.0.0",
-    "rollup-plugin-prettier": "^0.6.0"
+    "rollup": "^3.15.0",
+    "rollup-plugin-delete": "^2.0.0",
+    "rollup-plugin-dts": "^6.1.0",
+    "tslib": "^2.6.0"
   },
   "files": [
     "src/*",

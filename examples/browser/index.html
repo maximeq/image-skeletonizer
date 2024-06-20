@@ -9,7 +9,14 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title> Projet Image </title>
 	<link rel="stylesheet" href="style.css">
-	<script src="../../dist/browser/image-skeletonizer.js"></script>
+	<script src="../../dist/three-js-blobtree.module.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "@dioxygen-software/image-skeletonizer": "../../dist/three-js-blobtree.module.js"
+            }
+        }
+    </script>
 </head>
 
 <body>
@@ -19,6 +26,7 @@
 <canvas id="canvas3" width="640" height="480"></canvas>
 
 <script>
+    import { ImageSkeletonizer } from "@dioxygen-software/image-skeletonizer";
     var img = new Image();
     img.src = './img/Img01.png';
     img.crossOrigin = "Anonymous";

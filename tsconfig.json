@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": true,
+        "allowJs": true,
+        "checkJs": true,
+        "declaration": true,
+        "sourceMap": true,
+        "declarationMap": true,
+        "outDir": "dist/types",
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "verbatimModuleSyntax": true
+    },
+    "include": [
+        "src/**/*"
+    ]
+}
