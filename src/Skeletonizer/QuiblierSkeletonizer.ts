@@ -158,6 +158,7 @@ export class QuiblierSkeletonizer {
 
             // Check if there is a better candidate
             // A better candidate is either a point on the line to the father which has a higher distance than expected
+            // TODO: Check if this is used. 
             const checkCandidateHighest = () => {
                 const dist = father.getPosition().distanceTo(max_point);
                 const p = new Point2D(0, 0);

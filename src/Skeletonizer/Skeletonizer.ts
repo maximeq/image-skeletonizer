@@ -47,30 +47,41 @@ export class Skeletonizer {
 
     _simplifyHierarchy(roots: SkeletonNode[], angle: number, weight_factor: number): SkeletonNode[] {
         if (weight_factor < 1.0) {
-            throw new Error("weight_factor must be greater than 1 as it compares weight_max and weight_factor*weight_min");
+            throw "weight_factor must be greater than 1 as it compares weight_max and weight_factor*weight_min";
         }
 
-        const processBranch = (root: SkeletonNode, next: SkeletonNode) => {
+        // Process a branch from its root.
+        // Next is the direction in which we are looking
+        const processBranch = function (root: SkeletonNode, next: SkeletonNode, processed: { [key: string]: boolean }) {
+
             const tmpv2 = new Vector2D();
+
             let curr = next;
             const dir = new Vector2D();
             let curr_size = curr.getNeighbors().size;
             let angle_ok = true;
             let weight_ok = true;
-            let suspect: SkeletonNode | null = null;
+            let suspect = null;
             let count = 0;
-            const processed: { [key: string]: boolean } = {};
-            processed[root.getKey()] = true;
-
+            let neighbor: SkeletonNode | undefined = next;
             while (curr_size === 2 && angle_ok && weight_ok && !processed[curr.getKey()]) {
+
                 const it = curr.getNeighbors().keys();
+
                 suspect = curr;
-                curr = curr.getNeighbors().get(it.next().value)!;
+                neighbor = curr.getNeighbors().get(it.next().value);
+                if (neighbor === undefined)
+                    throw "[Skeletonizer] processBranch: curr's neighbor is undefined";
+                curr = neighbor;
                 if (curr === root) {
-                    curr = suspect.getNeighbors().get(it.next().value)!;
+                    neighbor = suspect.getNeighbors().get(it.next().value);
+                    if (neighbor === undefined)
+                        throw "[Skeletonizer] processBranch: suspect's neighbor is undefined";
+                    curr = neighbor;
                 }
 
-                const discard__n = 3;
+                // Update dir using the second pixel on the branch for more accuracy
+                const discard__n = 3; // number of pixels to discard before actually comparing angles and weight
                 if (count < discard__n) {
                     dir.x += curr.getPosition().x;
                     dir.y += curr.getPosition().y;
@@ -89,11 +100,13 @@ export class Skeletonizer {
                 if (count >= discard__n) {
                     let w_ratio = root.getWeight() / curr.getWeight();
                     if (w_ratio < 1) { w_ratio = 1 / w_ratio; }
+
                     if (w_ratio > weight_factor) {
                         weight_ok = false;
                     }
                 }
                 if (angle_ok && weight_ok) {
+                    // remove suspect
                     root.removeNeighbor(suspect);
                     curr.removeNeighbor(suspect);
                     root.addNeighbor(curr);
@@ -104,47 +117,68 @@ export class Skeletonizer {
                 curr_size = curr.getNeighbors().size;
             }
 
+            // If it's processed, that means we have reached an existing branch so we just do nothing
             if (!processed[curr.getKey()]) {
                 if (curr_size === 1) {
                     if (!angle_ok || !weight_ok) {
+                        // The very last pixel is out of constraints.
+                        // 3 choices :
+                        //  - discard it
+                        //  - Make an exception and keep it in the current branch
+                        //  - have it create a 2 pixel branch
+                        // Here we decide to discard it
                         if (suspect) {
                             suspect.removeNeighbor(curr);
                         }
                     }
+                    // Very small branch of 1 pixel, we discard it
                     if (count === 0) {
                         root.removeNeighbor(curr);
                     }
                     processed[curr.getKey()] = true;
-                } else if (curr_size === 2) {
-                    processBranch(suspect!, curr);
-                    processed[suspect!.getKey()] = true;
+                } else if (curr_size === 2) { // angle_ok or weihgt_ok must be false
+                    // Here the point has gone off the angle constraint but is still on a unique line.
+                    // Suspect becames the new root and we go ahead
+                    if (suspect === null)
+                        throw "[Skeletonizer] processBranch: suspect is null";
+                    processBranch(suspect, curr, processed)
+                    processed[suspect.getKey()] = true;
                 } else {
+                    // here the point has more than 2 neighbors so it's a branching point.
+                    // We need to get all next branches
                     const nexts: SkeletonNode[] = [];
-                    curr.getNeighbors().forEach((value: SkeletonNode) => {
-                        if (value !== suspect && value !== root) {
-                            nexts.push(value);
+                    curr.getNeighbors().forEach(
+                        function (value) {
+                            if (value !== suspect && value !== root) {
+                                nexts.push(value);
+                            }
                         }
-                    });
-
+                    );
+                    // Discard the suspect even if it was not verifying the weight and angle checks
+                    // We could replace curr with suspect instead but its more complex (TODO ?)
                     if (suspect) {
                         root.removeNeighbor(suspect);
                         curr.removeNeighbor(suspect);
                         root.addNeighbor(curr);
                     }
 
+
                     processed[curr.getKey()] = true;
-                    const neighbors2 = new Map<string, SkeletonNode>();
+                    // We are branching so we need to disconnect all nexts nodes
+                    const neighbors2 = new Map(); // Second degree neighbors
                     for (let i = 0; i < nexts.length; ++i) {
                         for (let j = i + 1; j < nexts.length; ++j) {
                             nexts[i].removeNeighbor(nexts[j]);
                         }
-                        nexts[i].getNeighbors().forEach((value: SkeletonNode, key: string) => {
+                        nexts[i].getNeighbors().forEach(function (value, key) {
                             neighbors2.set(key, value);
                         });
                     }
                     neighbors2.delete(curr.getKey());
-
-                    neighbors2.forEach((n) => {
+                    // Also, if 2 next nodes share a neighbor, it mus be processed only by one of them.
+                    // The more connected will be kept.
+                    const vec2 = new Vector2D();
+                    neighbors2.forEach(function (n) {
                         let count = 0;
                         for (let i = 0; i < nexts.length; ++i) {
                             if (n.hasNeighbor(nexts[i])) {
@@ -154,8 +188,8 @@ export class Skeletonizer {
                         if (count > 1) {
                             for (let i = 0; i < nexts.length; ++i) {
                                 if (n.hasNeighbor(nexts[i])) {
-                                    tmpv2.subPoints(n.getPosition(), nexts[i].getPosition());
-                                    if (tmpv2.length() > 1) {
+                                    vec2.subPoints(n.getPosition(), nexts[i].getPosition());
+                                    if (vec2.length() > 1) {
                                         n.removeNeighbor(nexts[i]);
                                     }
                                 }
@@ -163,7 +197,7 @@ export class Skeletonizer {
                         }
                     });
                     for (let i = 0; i < nexts.length; ++i) {
-                        processBranch(curr, nexts[i]);
+                        processBranch(curr, nexts[i], processed);
                     }
                 }
             }
@@ -171,29 +205,39 @@ export class Skeletonizer {
 
         for (let i = 0; i < roots.length; ++i) {
             let root = roots[i];
-            let sent: SkeletonNode | null = null;
+            let sent = null;
             if (root.getNeighbors().size > 1) {
-                sent = new SkeletonNode(new Point2D(root.getPosition().x, root.getPosition().y - 1), root.getWeight());
+                // create a sentinel to manage cases where we immediately have 2 branches.
+                sent = new SkeletonNode(
+                    new Point2D(root.getPosition().x, root.getPosition().y - 1),
+                    root.getWeight()
+                );
                 root.addNeighbor(sent);
                 roots[i] = sent;
                 root = sent;
+                // TODO : remove it afterwards ?
             }
 
-            const processed: { [key: string]: boolean } = {};
+            const processed: {[key: string]: boolean} = {};
             processed[root.getKey()] = true;
-            const next = root.getNeighbors().get(root.getNeighbors().keys().next().value)!;
-            processBranch(root, next);
+            const next = root.getNeighbors().get(root.getNeighbors().keys().next().value);
+            if (next === undefined)
+                throw "[Skeletonizer] _simplifyHierarchy: next is undefined";
+            processBranch(root, next, processed);
         }
 
         return roots;
-    }
+    };
 
+    /**
+     *  Find the next pixel with neighbors after index start.
+     */
     _findNextPixelWithNeighbors(start: number): number {
         const size = this.skelImg.width * this.skelImg.height;
         let k = start;
         for (k = start; k < size; k++) {
             if (this.skelImg.data[k] & 1) {
-                if (this.skelImg.getCurrentNeighborhood(k) === 0) {
+                if (this.skelImg.getCurrentNeighborhood(k) == 0) {
                     this.skelImg.data[k] = 0; // Single skeleton pixels are wiped out.
                 } else {
                     break;
