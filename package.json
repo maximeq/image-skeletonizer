@@ -1,6 +1,6 @@
 {
   "name": "image-skeletonizer",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Library computing a skeleton from a bicolor image.",
   "main": "src/exports.js",
   "type": "module",

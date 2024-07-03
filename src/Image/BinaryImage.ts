@@ -3,8 +3,8 @@
 /**
  *  Class to manipulate a "binary" image, ie the RGBA pixel data is replaced with 0 or 1 (1 for near black pixels).
  *
- *  @param {ImageData} source The orginal image to be binarized
- *  @param {number}    tolerance The difference to white above which the pixel is considered black. Default to 12.
+ *  @param source The orginal image to be binarized
+ *  @param tolerance The difference to white above which the pixel is considered black. Default to 12.
  *                               Difference is computed by cumulating difference for each channel.
  */
 export class BinaryImage {
