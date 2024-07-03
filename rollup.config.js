@@ -1,51 +1,49 @@
 import commonjs from "@rollup/plugin-commonjs";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import { terser } from "rollup-plugin-terser";
+import typescript from "@rollup/plugin-typescript";
+import del from 'rollup-plugin-delete'
+import { dts } from "rollup-plugin-dts";
+import { readFileSync } from 'fs';
+
 
 const MODULE_NAME = "ImageSkeletonizer";
 const MODULE_FILENAME = "image-skeletonizer";
 const DIST = "./dist";
 
+const PACKAGE_NAME = MODULE_FILENAME;
+const PACKAGE_JSON = JSON.parse(readFileSync('package.json', 'utf8'))
+
+const external = [
+    ...Object.keys(PACKAGE_JSON.dependencies ?? {}),
+    ...Object.keys(PACKAGE_JSON.peerDependencies ?? {})
+]
+
 export default {
     // entrypoint
-    input: "src/exports.js",
+    input: { module: "src/exports.ts"},
 
     // common options
     plugins: [
+        del({ targets: './dist/*' }),
+        typescript(),
         commonjs(), // handles requires in CJS dependancies
         nodeResolve(), // resolves node_module dependancies
     ],
-
+    external: external,
     // specific options
     output: [
         {
-            // for bundlers
+            dir: `./dist`,
+            entryFileNames: `${PACKAGE_NAME}.[name].js`,
             format: "esm",
-            file: `${DIST}/${MODULE_FILENAME}.mjs`,
-        },
-
-        {
-            // for node
-            format: "cjs",
-            file: `${DIST}/${MODULE_FILENAME}.cjs`,
-        },
-
-        {
-            // for browser (debug)
-            format: "iife",
-            name: MODULE_NAME,
-            file: `${DIST}/${MODULE_FILENAME}.js`,
-            sourcemap: true, // for easier debugging in dev tools
-        },
-
-        {
-            // for browser (minified)
-            format: "iife",
-            name: MODULE_NAME,
-            file: `${DIST}/${MODULE_FILENAME}.min.js`,
-            plugins: [
-                terser(), // minify
-            ],
+            sourcemap: true,
         },
     ],
+    // TODO: uncomment this when package is fully ported to TS
+//     // bundle types
+//     {
+//         input: "./dist/types/exports.d.ts",
+//         output: [{ file: `dist/${PACKAGE_NAME}.module.d.ts`, format: "es" }],
+//         plugins: [dts()],
+//     }
 };

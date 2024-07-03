@@ -8,7 +8,13 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title> Projet Image </title>
-	<script src="../../dist/image-skeletonizer.js"></script>
+	<script type="importmap">
+        {
+          "imports": {
+            "@dioxygen-software/image-skeletonizer": "../../dist/image-skeletonizer.module.js"
+          }
+        }
+      </script>
 </head>
 
 <body>
@@ -17,9 +23,10 @@
 <canvas id="canvas2" width="640" height="480"></canvas>
 <canvas id="canvas3" width="640" height="480"></canvas>
 
-<script>
+<script type="module">
+    import ImageSkeletonizer from "@dioxygen-software/image-skeletonizer"
     var img = new Image();
-    img.src = './img/Img01.png';
+    img.src = './img/star.png';
     img.crossOrigin = "Anonymous";
     img.onload = function() {
         var canvas = document.getElementById('canvas');
