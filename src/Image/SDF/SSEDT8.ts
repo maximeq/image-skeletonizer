@@ -50,7 +50,7 @@ export class SSEDT8 {
      *  @param y coordinate in height
      *  @param grid The grid
      *
-     *  @return {{x:number,y:number}} The cell at x y
+     *  @return The cell at x y
      */
     grid_get(grid: { x: number, y: number }[], x: number, y: number): { x: number, y: number } {
         if (x < 0 || y < 0 || x > (this.width - 1) || y > (this.height - 1)) {
@@ -237,7 +237,6 @@ export class SSEDT8 {
     computeDistanceField(img_data: ImageData, signed: boolean): { data: Float32Array, width: number, height: number } {
         // create from the canva a binary array containing inside/outside crisps pixels
         const binary_img = new BinaryImage(img_data);
-        console.log("data", binary_img.data);
         const computer = new SSEDT8(binary_img.data, binary_img.width, binary_img.height);
         // Compute the signed distance field from the binary output
         if (signed) {

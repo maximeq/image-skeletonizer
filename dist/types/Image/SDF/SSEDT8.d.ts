@@ -45,7 +45,7 @@ export declare class SSEDT8 {
      *  @param y coordinate in height
      *  @param grid The grid
      *
-     *  @return {{x:number,y:number}} The cell at x y
+     *  @return The cell at x y
      */
     grid_get(grid: {
         x: number;
