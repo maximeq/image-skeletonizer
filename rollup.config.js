@@ -8,7 +8,7 @@ const DIST = "./dist";
 
 export default {
     // entrypoint
-    input: "src/exports.js",
+    input: "src/exports.ts",
 
     // common options
     plugins: [
