@@ -18,7 +18,7 @@ export const capsuleDistance = (() => {
         const length = unit_dir.length();
         unit_dir.x = unit_dir.x / length;
         unit_dir.y = unit_dir.y / length;
-
+ 
         v.subPoints(p, p1);
 
         const p1p_l = v.length();
@@ -30,7 +30,7 @@ export const capsuleDistance = (() => {
         const x_p_2D = v.x * unit_dir.x + v.y * unit_dir.y;
         // Pythagorean theorem
         const y_p_2D = Math.sqrt(
-            Math.max(
+            Math.max( // Necessary because of rounded errors, pyth result can be <0 and this causes sqrt to return NaN...
                 0.0, p1p_sqrl - x_p_2D * x_p_2D // = y_p_2D² by Pythagorean theorem
             )
         );

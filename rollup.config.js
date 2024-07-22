@@ -6,9 +6,7 @@ import { dts } from "rollup-plugin-dts";
 import { readFileSync } from 'fs';
 
 
-const MODULE_NAME = "ImageSkeletonizer";
 const MODULE_FILENAME = "image-skeletonizer";
-const DIST = "./dist";
 
 const PACKAGE_NAME = MODULE_FILENAME;
 const PACKAGE_JSON = JSON.parse(readFileSync('package.json', 'utf8'))
@@ -40,10 +38,8 @@ export default {
         },
     ],
     // TODO: uncomment this when package is fully ported to TS
-//     // bundle types
-//     {
-//         input: "./dist/types/exports.d.ts",
-//         output: [{ file: `dist/${PACKAGE_NAME}.module.d.ts`, format: "es" }],
-//         plugins: [dts()],
-//     }
+    // bundle types
+    input: "./dist/types/exports.d.ts",
+    output: [{ file: `dist/${PACKAGE_NAME}.module.d.ts`, format: "es" }],
+    plugins: [dts()],
 };

@@ -18,7 +18,7 @@ export class IntDistanceImage {
 
     constructor(c1: number, c2: number, source: BinaryImage, uncolored: number) {
         if (!(source instanceof BinaryImage)) {
-            throw "IntDistanceImage Error : source must be an instance of BinaryImage";
+            throw "[IntDistanceImage] constructor: source must be an instance of BinaryImage";
         }
         this.coeff = c1;
         this.width = source.width;
@@ -104,7 +104,7 @@ export class IntDistanceImage {
     };
 
     /**
-     *  @return {ImageData} A grey scale ImageData to visualize the distances.
+     *  @return A grey scale ImageData to visualize the distances.
      */
     getImageData(): ImageData {
 

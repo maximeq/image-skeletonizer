@@ -1,5 +1,3 @@
-"use strict";
-
 import { BinaryImage } from "../Image/BinaryImage";
 import { IntDistanceImage } from "../Image/IntDistanceImage";
 
