@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  *  Class to manipulate a "binary" image, ie the RGBA pixel data is replaced with 0 or 1 (1 for near black pixels).
  *

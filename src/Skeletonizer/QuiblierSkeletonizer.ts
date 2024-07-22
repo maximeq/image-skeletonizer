@@ -1,5 +1,3 @@
-"use strict";
-
 import SkeletonNode from "./SkeletonNode";
 import Point2D from "./Point2D";
 import capsuleDistance from "./CapsuleDistance";

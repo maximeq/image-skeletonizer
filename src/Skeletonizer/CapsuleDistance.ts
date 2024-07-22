@@ -1,5 +1,3 @@
-"use strict";
-
 import { Vector2D } from "./Vector2D";
 import Point2D from "./Point2D";
 

@@ -1,5 +1,3 @@
-"use strict";
-
 import { BinaryImage } from "./BinaryImage";
 
 /**

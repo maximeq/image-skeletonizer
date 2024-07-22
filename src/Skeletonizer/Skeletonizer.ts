@@ -79,12 +79,12 @@ export class Skeletonizer {
                 const it = curr.getNeighbors().keys();
 
                 suspect = curr;
-                neighbor = curr.getNeighbors().get(it.next().value);
+                neighbor = it.next().value ? curr.getNeighbors().get(it.next().value!) : undefined;
                 if (neighbor === undefined)
                     throw "[Skeletonizer] processBranch: curr's neighbor is undefined";
                 curr = neighbor;
                 if (curr === root) {
-                    neighbor = suspect.getNeighbors().get(it.next().value);
+                    neighbor = it.next().value ? suspect.getNeighbors().get(it.next().value!) : undefined;
                     if (neighbor === undefined)
                         throw "[Skeletonizer] processBranch: suspect's neighbor is undefined";
                     curr = neighbor;
@@ -230,7 +230,8 @@ export class Skeletonizer {
 
             const processed: {[key: string]: boolean} = {};
             processed[root.getKey()] = true;
-            const next = root.getNeighbors().get(root.getNeighbors().keys().next().value);
+
+            const next = root.getNeighbors().keys().next().value ? root.getNeighbors().get(root.getNeighbors().keys().next().value!) : undefined;
             if (next === undefined)
                 throw "[Skeletonizer] _simplifyHierarchy: next is undefined";
             processBranch(root, next, processed);
