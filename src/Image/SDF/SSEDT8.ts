@@ -1,5 +1,3 @@
-import { BinaryImage } from '../BinaryImage';
-
 /**
  * signed distance fields generation in javascript
  * uses the 8SSEDT algorithm for linear-time processing
@@ -229,22 +227,6 @@ export class SSEDT8 {
         return { "data": distanceFields, "width": this.width, "height": this.height };
     }
 
-    /**
-     *  Compute and return signed distance field
-     *  @param img_data The ImageData from a canvas context('2D')
-     *  @param signed True if the returned distane field must be signed. Default to true.
-     */
-    computeDistanceField(img_data: ImageData, signed: boolean): { data: Float32Array, width: number, height: number } {
-        // create from the canva a binary array containing inside/outside crisps pixels
-        const binary_img = new BinaryImage(img_data);
-        const computer = new SSEDT8(binary_img.data, binary_img.width, binary_img.height);
-        // Compute the signed distance field from the binary output
-        if (signed) {
-            return computer.signedDistanceFieldsFromGrid();
-        } else {
-            return computer.unsignedDistanceFieldsFromGrid();
-        }
-    }
 }
 
 export default SSEDT8;
