@@ -17,7 +17,7 @@ export class BinaryImage {
     this.width = source.width;
     this.height = source.height;
     this.data = new Uint8Array(source.width * source.height);
-    this._buildBinaryImage(source, this.tolerance);
+    this._buildBinaryImage(source);
   };
 
   getIndex (x: number, y: number) {
@@ -37,7 +37,7 @@ export class BinaryImage {
  *  @private
  *  TODO : tolerance is unused, see if it is useful
  */
-  private _buildBinaryImage (source: ImageData, _tolerance: number) {
+  private _buildBinaryImage (source: ImageData) {
     const l = this.width * this.height;
     for (let i = 0; i < l; i++) {
       const idx = 4 * i;
