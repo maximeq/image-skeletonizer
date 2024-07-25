@@ -665,16 +665,19 @@ class Skeletonizer {
             let weight_ok = true;
             let suspect = null;
             let count = 0;
-            let neighbor = next;
-            while (curr_size === 2 && angle_ok && weight_ok && !processed[curr.getKey()]) {
+            let value;
+            let neighbor;
+            while (curr_size === 2 && angle_ok && weight_ok && curr && !processed[curr.getKey()]) {
                 const it = curr.getNeighbors().keys();
                 suspect = curr;
-                neighbor = it.next().value ? curr.getNeighbors().get(it.next().value) : undefined;
+                value = it.next().value;
+                neighbor = value ? curr.getNeighbors().get(value) : undefined;
                 if (neighbor === undefined)
                     throw "[Skeletonizer] processBranch: curr's neighbor is undefined";
                 curr = neighbor;
                 if (curr === root) {
-                    neighbor = it.next().value ? suspect.getNeighbors().get(it.next().value) : undefined;
+                    value = it.next().value;
+                    neighbor = value ? suspect.getNeighbors().get(value) : undefined;
                     if (neighbor === undefined)
                         throw "[Skeletonizer] processBranch: suspect's neighbor is undefined";
                     curr = neighbor;
@@ -1066,6 +1069,28 @@ class QuiblierSkeletonizer {
                     }
                 }
             };
+            // Check if there is a better candidate
+            // A better candidate is either a point on the line to the father which has a higher distance than expected
+            // const checkCandidateHighest = () => {
+            //     const dist = father.getPosition().distanceTo(max_point);
+            //     const p = new Point2D(0, 0);
+            //     for (let t = 1; t < dist; t += 1.0) { // 1 pixel step
+            //         // Barycentre de 2 points ?
+            //         const ratio = t / dist;
+            //         p.barycenter(max_point, father.getPosition(), 1 - ratio, ratio);
+            //         p.x = Math.round(p.x);
+            //         p.y = Math.round(p.y);
+            //         const v = self.distImg.getValue(p.x, p.y) / self.distImg.getCoeff();
+            //         // I guess the expected v in a capsule at p is the linear variation of the values but not sure about that. TODO: check
+            //         const expected_v = (1 - ratio) * max_v + ratio * father.weight;
+            //         if (v > expected_v) { // we found a better candidate.
+            //             best_c.v = v;
+            //             best_c.p.x = p.x;
+            //             best_c.p.y = p.y;
+            //             best_c.idx = self.distImg.getIndex(p.x, p.y)
+            //         }
+            //     }
+            // };
             // Split the segment and check if the point is threshold-far from the highest distance in its neighborhood.
             const checkCandidateMid = () => {
                 const dist = father.getPosition().distanceTo(max_point);

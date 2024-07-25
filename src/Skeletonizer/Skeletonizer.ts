@@ -73,18 +73,22 @@ export class Skeletonizer {
             let weight_ok = true;
             let suspect = null;
             let count = 0;
-            let neighbor: SkeletonNode | undefined = next;
-            while (curr_size === 2 && angle_ok && weight_ok && !processed[curr.getKey()]) {
+
+            let value: string | undefined;
+            let neighbor: SkeletonNode | undefined;
+            while (curr_size === 2 && angle_ok && weight_ok && curr && !processed[curr.getKey()]) {
 
                 const it = curr.getNeighbors().keys();
 
                 suspect = curr;
-                neighbor = it.next().value ? curr.getNeighbors().get(it.next().value!) : undefined;
+                value = it.next().value;
+                neighbor = value ? curr.getNeighbors().get(value) : undefined;
                 if (neighbor === undefined)
                     throw "[Skeletonizer] processBranch: curr's neighbor is undefined";
                 curr = neighbor;
-                if (curr === root) {
-                    neighbor = it.next().value ? suspect.getNeighbors().get(it.next().value!) : undefined;
+                if(curr === root){
+                    value = it.next().value;
+                    neighbor = value ? suspect.getNeighbors().get(value) : undefined;
                     if (neighbor === undefined)
                         throw "[Skeletonizer] processBranch: suspect's neighbor is undefined";
                     curr = neighbor;
