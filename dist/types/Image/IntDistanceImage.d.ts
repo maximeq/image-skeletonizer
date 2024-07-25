@@ -22,7 +22,7 @@ export declare class IntDistanceImage {
     getYFromIndex(idx: number): number;
     _buildDistanceImage(c1: number, c2: number, source: BinaryImage, uncolored: number): void;
     /**
-     *  @return {ImageData} A grey scale ImageData to visualize the distances.
+     *  @return A grey scale ImageData to visualize the distances.
      */
     getImageData(): ImageData;
 }

@@ -15,7 +15,7 @@ class BinaryImage {
         this.width = source.width;
         this.height = source.height;
         this.data = new Uint8Array(source.width * source.height);
-        this._buildBinaryImage(source, this.tolerance);
+        this._buildBinaryImage(source);
     }
     ;
     getIndex(x, y) {
@@ -36,7 +36,7 @@ class BinaryImage {
      *  @private
      *  TODO : tolerance is unused, see if it is useful
      */
-    _buildBinaryImage(source, _tolerance) {
+    _buildBinaryImage(source) {
         const l = this.width * this.height;
         for (let i = 0; i < l; i++) {
             const idx = 4 * i;
@@ -67,7 +67,7 @@ class IntDistanceImage {
     data;
     constructor(c1, c2, source, uncolored) {
         if (!(source instanceof BinaryImage)) {
-            throw "IntDistanceImage Error : source must be an instance of BinaryImage";
+            throw "[IntDistanceImage] constructor: source must be an instance of BinaryImage";
         }
         this.coeff = c1;
         this.width = source.width;
@@ -145,7 +145,7 @@ class IntDistanceImage {
     }
     ;
     /**
-     *  @return {ImageData} A grey scale ImageData to visualize the distances.
+     *  @return A grey scale ImageData to visualize the distances.
      */
     getImageData() {
         const res = new ImageData(this.width, this.height);
@@ -612,6 +612,16 @@ class Vector2D {
     }
 }
 
+/**
+ *  Improvements notes :
+ *      - Currently the weight factor is used to split while processing a branch, compared to the origin.
+ *        It would be better to split only if the difference is to high compared to the linear variation
+ *        along a branch.
+ *
+ *  @param params
+ *  @param params.angle Maximum angle difference allowed along a branch. Default to PI/13.
+ *  @param params.weightFactor Maximum factor between the larger and the smaller weights (ie max < factor*min), in [1,+infinity]. Default to 1.25.
+ */
 class Skeletonizer {
     skelImg;
     distImg;
@@ -659,12 +669,12 @@ class Skeletonizer {
             while (curr_size === 2 && angle_ok && weight_ok && !processed[curr.getKey()]) {
                 const it = curr.getNeighbors().keys();
                 suspect = curr;
-                neighbor = curr.getNeighbors().get(it.next().value);
+                neighbor = it.next().value ? curr.getNeighbors().get(it.next().value) : undefined;
                 if (neighbor === undefined)
                     throw "[Skeletonizer] processBranch: curr's neighbor is undefined";
                 curr = neighbor;
                 if (curr === root) {
-                    neighbor = suspect.getNeighbors().get(it.next().value);
+                    neighbor = it.next().value ? suspect.getNeighbors().get(it.next().value) : undefined;
                     if (neighbor === undefined)
                         throw "[Skeletonizer] processBranch: suspect's neighbor is undefined";
                     curr = neighbor;
@@ -799,7 +809,7 @@ class Skeletonizer {
             }
             const processed = {};
             processed[root.getKey()] = true;
-            const next = root.getNeighbors().get(root.getNeighbors().keys().next().value);
+            const next = root.getNeighbors().keys().next().value ? root.getNeighbors().get(root.getNeighbors().keys().next().value) : undefined;
             if (next === undefined)
                 throw "[Skeletonizer] _simplifyHierarchy: next is undefined";
             processBranch(root, next, processed);
@@ -895,7 +905,8 @@ const capsuleDistance = (() => {
         // We need a projection in this direction up to the segment line to know in which case we fall.
         const x_p_2D = v.x * unit_dir.x + v.y * unit_dir.y;
         // Pythagorean theorem
-        const y_p_2D = Math.sqrt(Math.max(0.0, p1p_sqrl - x_p_2D * x_p_2D // = y_p_2D² by Pythagorean theorem
+        const y_p_2D = Math.sqrt(Math.max(// Necessary because of rounded errors, pyth result can be <0 and this causes sqrt to return NaN...
+        0.0, p1p_sqrl - x_p_2D * x_p_2D // = y_p_2D² by Pythagorean theorem
         ));
         const t = -y_p_2D / length;
         const proj_x = x_p_2D + t * (r1 - r2);

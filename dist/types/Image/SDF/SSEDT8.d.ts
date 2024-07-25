@@ -117,16 +117,6 @@ export declare class SSEDT8 {
         width: number;
         height: number;
     };
-    /**
-     *  Compute and return signed distance field
-     *  @param img_data The ImageData from a canvas context('2D')
-     *  @param signed True if the returned distane field must be signed. Default to true.
-     */
-    computeDistanceField(img_data: ImageData, signed: boolean): {
-        data: Float32Array;
-        width: number;
-        height: number;
-    };
 }
 export default SSEDT8;
 //# sourceMappingURL=SSEDT8.d.ts.map

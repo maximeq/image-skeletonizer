@@ -46,7 +46,7 @@ declare class IntDistanceImage {
     getYFromIndex(idx: number): number;
     _buildDistanceImage(c1: number, c2: number, source: BinaryImage, uncolored: number): void;
     /**
-     *  @return {ImageData} A grey scale ImageData to visualize the distances.
+     *  @return A grey scale ImageData to visualize the distances.
      */
     getImageData(): ImageData;
 }
@@ -146,6 +146,16 @@ interface Params {
     angle?: number;
     weightFactor?: number;
 }
+/**
+ *  Improvements notes :
+ *      - Currently the weight factor is used to split while processing a branch, compared to the origin.
+ *        It would be better to split only if the difference is to high compared to the linear variation
+ *        along a branch.
+ *
+ *  @param params
+ *  @param params.angle Maximum angle difference allowed along a branch. Default to PI/13.
+ *  @param params.weightFactor Maximum factor between the larger and the smaller weights (ie max < factor*min), in [1,+infinity]. Default to 1.25.
+ */
 declare class Skeletonizer {
     skelImg: SkeletonImage;
     distImg: IntDistanceImage;
