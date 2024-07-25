@@ -1,76 +1,78 @@
-"use strict";
+import Point2D from "./Point2D";
 
 /**
- *  Main class for a skeleton node in an image.
- *  Must be unique for each pixel.
- *  @param {Point2D} position The position of the node. Can be anything in [x+1[ [y+1[
+ * Main class for a skeleton node in an image.
+ * Must be unique for each pixel.
  */
-var SkeletonNode = function(position, weight){
-  this.position = position;
-  this.weight = weight;
-  this.neighbors = new Map();
-};
+export class SkeletonNode {
+    position: Point2D;
+    weight: number;
+    neighbors: Map<string, SkeletonNode>;
 
-/**
- *  Compute the key of a node in neighbors maps, given its x,y positions.
- */
-SkeletonNode.computeKey = function(x,y){
-    return Math.floor(x)+";"+Math.floor(y);
+    constructor(position: Point2D, weight: number) {
+        this.position = position;
+        this.weight = weight;
+        this.neighbors = new Map();
+    }
+
+    /**
+     * Compute the key of a node in neighbors maps, given its x,y positions.
+     */
+    static computeKey(x: number, y: number): string {
+        return Math.floor(x) + ";" + Math.floor(y);
+    }
+
+    /**
+     * Return x,y in an array of 2 elements
+     */
+    static getXYFromKey(key: string): [number, number] {
+        const res = key.split(";");
+        return [parseInt(res[0]), parseInt(res[1])];
+    }
+
+    // Getters
+    getKey(): string {
+        return SkeletonNode.computeKey(this.position.x, this.position.y);
+    }
+
+    getPosition(): Point2D {
+        return this.position;
+    }
+
+    getWeight(): number {
+        return this.weight;
+    }
+
+    getNeighbors(): Map<string, SkeletonNode> {
+        return this.neighbors;
+    }
+
+    // Setters
+    setPosition(position: Point2D): void {
+        this.position = position;
+    }
+
+    setWeight(weight: number): void {
+        this.weight = weight;
+    }
+
+    setNeighbors(neighbors: Map<string, SkeletonNode>): void {
+        this.neighbors = neighbors;
+    }
+
+    addNeighbor(n: SkeletonNode): void {
+        this.neighbors.set(n.getKey(), n);
+        n.neighbors.set(this.getKey(), this);
+    }
+
+    removeNeighbor(n: SkeletonNode): void {
+        this.neighbors.delete(n.getKey());
+        n.neighbors.delete(this.getKey());
+    }
+
+    hasNeighbor(n: SkeletonNode): boolean {
+        return this.neighbors.has(n.getKey());
+    }
 }
-/**
- *  Return x,y in an array of 2 elements
- */
-SkeletonNode.getXYFromKey = function(key){
-    var res = key.split(";");
-    res[0] = parseInt(res[0]);
-    res[1] = parseInt(res[1]);
-    return res;
-}
 
-SkeletonNode.prototype.constructor = SkeletonNode;
-
-// Getters
-SkeletonNode.prototype.getKey = function(){
-    return SkeletonNode.computeKey(this.position.x,this.position.y);
-}
-
-SkeletonNode.prototype.getPosition = function(){
-  return this.position;
-};
-
-SkeletonNode.prototype.getWeight = function(){
-  return this.weight;
-};
-
-SkeletonNode.prototype.getNeighbors = function(){
-  return this.neighbors;
-};
-
-// Setters
-SkeletonNode.prototype.setPosition = function(position){
-  this.position = position;
-};
-
-SkeletonNode.prototype.setWeight = function(weight){
-  this.weight = weight;
-};
-
-SkeletonNode.prototype.setNeighbors = function(neighbors){
-  this.neighbors = neighbors;
-};
-
-SkeletonNode.prototype.addNeighbor = function(n){
-  this.neighbors.set(n.getKey(),n);
-  n.neighbors.set(this.getKey(),this);
-};
-
-SkeletonNode.prototype.removeNeighbor = function(n){
-  this.neighbors.delete(n.getKey());
-  n.neighbors.delete(this.getKey());
-};
-
-SkeletonNode.prototype.hasNeighbor = function(n){
-  return this.neighbors.has(n.getKey());
-};
-
-module.exports = SkeletonNode;
+export default SkeletonNode;

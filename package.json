@@ -1,26 +1,29 @@
 {
   "name": "image-skeletonizer",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "type": "module",
   "description": "Library computing a skeleton from a bicolor image.",
-  "main": "./dist/image-skeletonizer.cjs",
-  "module": "src/exports.js",
-  "browser": "./dist/image-skeletonizer.min.js",
+  "main": "./dist/image-skeletonizer.module.js",
+  "module": "dist/image-skeletonizer.module.js",
   "scripts": {
     "build": "npx rollup -c",
-    "start": "npx http-server -o examples/browser -c-1",
+    "start": "npx http-server -o examples -c-1",
     "doc": "node make-doc.js",
     "dev": "npm run build && npm run start",
     "watch": "npx rollup -c -w"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^22.0.0",
-    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^11.1.1",
     "eslint": "^8.16.0",
     "http-server": "^14.1.0",
     "jsdoc-api": "^4.0.3",
     "prettier": "^2.6.2",
-    "rollup": "^2.75.0",
-    "rollup-plugin-terser": "^7.0.2"
+    "rollup": "^3.15.0",
+    "rollup-plugin-delete": "^2.0.0",
+    "rollup-plugin-dts": "^6.1.0",
+    "tslib": "^2.6.0"
   },
   "files": [
     "src/*",

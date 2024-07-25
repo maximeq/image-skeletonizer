@@ -1,47 +1,55 @@
-"use strict";
-
 /**
  *  Class to manipulate a "binary" image, ie the RGBA pixel data is replaced with 0 or 1 (1 for near black pixels).
  *
- *  @param {ImageData} source The orginal image to be binarized
- *  @param {number}    tolerance The difference to white above which the pixel is considered black. Default to 12.
+ *  @param source The orginal image to be binarized
+ *  @param tolerance The difference to white above which the pixel is considered black. Default to 12.
  *                               Difference is computed by cumulating difference for each channel.
  */
-var BinaryImage = function(source, tolerance){
-  this.tolerance = tolerance !== undefined ? tolerance : 12;
-  this.width = source.width;
-  this.height = source.height;
-  this.data = new Uint8Array(source.width*source.height);
-  this._buildBinaryImage(source, this.tolerance);
-};
+export class BinaryImage {
+  tolerance: number;
+  width: number;
+  height: number;
+  data: Uint8Array;
+  
 
-BinaryImage.prototype.constructor = BinaryImage;
+  constructor(source: ImageData, tolerance?: number) {
+    this.tolerance = tolerance !== undefined ? tolerance : 12;
+    this.width = source.width;
+    this.height = source.height;
+    this.data = new Uint8Array(source.width * source.height);
+    this._buildBinaryImage(source);
+  };
 
-BinaryImage.prototype.getIndex = function(x,y){
-  return y*this.width+x;
-};
+  getIndex (x: number, y: number) {
+    return y * this.width + x;
+  };
 /**
- *  @return {number} 0 or 1
+ *  @return 0 or 1
  */
-BinaryImage.prototype.getValue = function(x,y){
-  return this.data[this.getIndex(x,y)];
-};
+  getValue (x: number, y: number): 0 | 1 {
+    const output = this.data[this.getIndex(x, y)];
+    if (output !== 1 && output !== 0)
+      throw '[BinaryImage] getValue : invalid value, data should only have 0s and 1s';
+    return output;
+  };
 
 /**
  *  @private
+ *  TODO : tolerance is unused, see if it is useful
  */
-BinaryImage.prototype._buildBinaryImage = function(source, tolerance){
-    var l = this.width*this.height;
-    for(var i=0; i<l; i++){
-        var idx = 4*i;
-        // this.data[i] = 3*255 - (source.data[idx] + source.data[idx+1] + source.data[idx+2])  < tolerance ? 0 : 1;
-        if(source.data[idx] < 125 && source.data[idx+1] < 125 && source.data[idx+2] < 125){
-            this.data[i] = 1;
-        }else{
-            this.data[i] = 0;
-        }
+  private _buildBinaryImage (source: ImageData) {
+    const l = this.width * this.height;
+    for (let i = 0; i < l; i++) {
+      const idx = 4 * i;
+      // this.data[i] = 3*255 - (source.data[idx] + source.data[idx+1] + source.data[idx+2])  < tolerance ? 0 : 1;
+      if (source.data[idx] < 125 && source.data[idx + 1] < 125 && source.data[idx + 2] < 125) {
+        this.data[i] = 1;
+      } else {
+        this.data[i] = 0;
+      }
 
     }
-};
+  };
+}
 
-module.exports = BinaryImage;
+export default BinaryImage;

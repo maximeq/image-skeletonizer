@@ -1,51 +1,47 @@
 import commonjs from "@rollup/plugin-commonjs";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import { terser } from "rollup-plugin-terser";
+import typescript from "@rollup/plugin-typescript";
+import del from 'rollup-plugin-delete'
+import { dts } from "rollup-plugin-dts";
+import { readFileSync } from 'fs';
 
-const MODULE_NAME = "ImageSkeletonizer";
 const MODULE_FILENAME = "image-skeletonizer";
-const DIST = "./dist";
 
-export default {
-    // entrypoint
-    input: "src/exports.ts",
+const PACKAGE_NAME = MODULE_FILENAME;
+const PACKAGE_JSON = JSON.parse(readFileSync('package.json', 'utf8'))
 
-    // common options
-    plugins: [
-        commonjs(), // handles requires in CJS dependancies
-        nodeResolve(), // resolves node_module dependancies
-    ],
+const external = [
+    ...Object.keys(PACKAGE_JSON.dependencies ?? {}),
+    ...Object.keys(PACKAGE_JSON.peerDependencies ?? {})
+]
 
-    // specific options
-    output: [
-        {
-            // for bundlers
-            format: "esm",
-            file: `${DIST}/${MODULE_FILENAME}.mjs`,
-        },
+export default [
+    {
+        // build esm
+        input: { module: "src/exports.ts" },
 
-        {
-            // for node
-            format: "cjs",
-            file: `${DIST}/${MODULE_FILENAME}.cjs`,
-        },
+        plugins: [
+            del({ targets: './dist/*' }),
+            typescript(),
+            commonjs(), // handles requires in CJS dependancies
+            nodeResolve(), // resolves node_module dependancies
+        ],
 
-        {
-            // for browser (debug)
-            format: "iife",
-            name: MODULE_NAME,
-            file: `${DIST}/${MODULE_FILENAME}.js`,
-            sourcemap: true, // for easier debugging in dev tools
-        },
+        external: external,
 
-        {
-            // for browser (minified)
-            format: "iife",
-            name: MODULE_NAME,
-            file: `${DIST}/${MODULE_FILENAME}.min.js`,
-            plugins: [
-                terser(), // minify
-            ],
-        },
-    ],
-};
+        output: [
+            {
+                dir: `./dist`,
+                entryFileNames: `${PACKAGE_NAME}.[name].js`,
+                format: "esm",
+                sourcemap: true,
+            },
+        ],
+    },
+    {
+        // bundle types
+        input: "./dist/types/exports.d.ts",
+        output: [{ file: `dist/${PACKAGE_NAME}.module.d.ts`, format: "es" }],
+        plugins: [dts()],
+    }
+];

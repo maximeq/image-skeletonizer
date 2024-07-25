@@ -1,29 +1,32 @@
-"use strict";
+import Point2D from "./Point2D";
 
-var Vector2D = function(x, y){
-  this.x = x || 0;
-  this.y = y || 0;
-};
+export class Vector2D {
+    x: number;
+    y: number;
 
-Vector2D.prototype.length = function(p){
-    var x = this.x;
-    var y = this.y;
-    return Math.sqrt(x*x+y*y);
-};
+    constructor(x?: number, y?: number) {
+        this.x = x || 0;
+        this.y = y || 0;
+    }
 
-Vector2D.prototype.subPoints = function(p1,p2){
-    this.x = p1.x-p2.x;
-    this.y = p1.y-p2.y;
-    return this;
-};
+    length(): number {
+        const x = this.x;
+        const y = this.y;
+        return Math.sqrt(x * x + y * y);
+    }
 
-Vector2D.prototype.angle = function () {
-    // computes the angle in radians with respect to the positive x-axis
-    var angle = Math.atan2( this.y, this.x );
-    if ( angle < 0 ) angle += 2 * Math.PI;
-    return angle;
+    subPoints(p1: Point2D, p2: Point2D): Vector2D {
+        this.x = p1.x - p2.x;
+        this.y = p1.y - p2.y;
+        return this;
+    }
 
-};
+    angle(): number {
+        // computes the angle in radians with respect to the positive x-axis
+        let angle = Math.atan2(this.y, this.x);
+        if (angle < 0) angle += 2 * Math.PI;
+        return angle;
+    }
+}
 
-module.exports = Vector2D;
-
+export default Vector2D;
